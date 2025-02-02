@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/bt_banheiro"
+        android:layout_width="195dp"
+        android:layout_height="209dp"
+        android:onClick="lerBanheiro"
+        android:src="@drawable/bt_banheiro"
+        app:layout_constraintBottom_toTopOf="@+id/bt_comer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.883" />
+
+    <ImageView
+        android:id="@+id/bt_beber"
+        android:layout_width="189dp"
+        android:layout_height="214dp"
+        android:onClick="lerBeber"
+        android:src="@drawable/bt_beber"
+        app:layout_constraintBottom_toTopOf="@+id/bt_comer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/bt_banheiro"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.882" />
+
+    <ImageView
+        android:id="@+id/bt_comer"
+        android:layout_width="184dp"
+        android:layout_height="203dp"
+        android:onClick="lerComer"
+        android:src="@drawable/bt_comer"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.02"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <ImageView
+        android:id="@+id/bt_brincar"
+        android:layout_width="188dp"
+        android:layout_height="210dp"
+        android:onClick="lerBrincar"
+        android:src="@drawable/bt_brincar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/bt_comer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <ImageView
+        android:id="@+id/bt_voltar"
+        android:layout_width="85dp"
+        android:layout_height="90dp"
+        android:onClick="voltar"
+        android:src="@drawable/bt_voltar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.448" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
