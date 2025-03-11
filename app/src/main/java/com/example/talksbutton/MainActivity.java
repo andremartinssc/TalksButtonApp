@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Inicializar o TextToSpeech
+        // Inicializar o TextToSpeech - teste git
         textToSpeech = new TextToSpeech(this, this);
 
         ImageView bt_quero = findViewById(R.id.bt_quero);
