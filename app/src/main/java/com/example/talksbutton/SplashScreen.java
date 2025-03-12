@@ -21,6 +21,6 @@ public class SplashScreen extends AppCompatActivity {
                 startActivity(intent);
                 finish();
             }
-        }, 3000); // Atraso de 3 segundos (3000 milissegundos)
+        }, 1500);
     }
 }

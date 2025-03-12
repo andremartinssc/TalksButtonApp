@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -6,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="@drawable/fundo"
     tools:context=".MainActivity">
-
 
     <ImageView
         android:id="@+id/imageViewBackground"
@@ -25,20 +23,20 @@
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/bt_nao"
-        app:layout_constraintHorizontal_bias="0.514"
-        app:layout_constraintStart_toEndOf="@+id/bt_sim"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.34"
-        app:srcCompat="@drawable/talks_fundo" />
+        app:layout_constraintEnd_toStartOf="@+id/bt_2"
+        app:layout_constraintHorizontal_bias="0.449"
+        app:layout_constraintStart_toEndOf="@+id/bt_1"
+        app:srcCompat="@drawable/talks_fundo"
+        tools:layout_editor_absoluteY="109dp" />
 
     <ImageView
-        android:id="@+id/bt_nao"
-        android:layout_width="244dp"
-        android:layout_height="233dp"
-        android:onClick="lerTextoNao"
-        android:src="@drawable/bt_nao"
+        android:id="@+id/bt_2"
+        android:layout_width="159dp"
+        android:layout_height="144dp"
+        android:foreground="?attr/selectableItemBackground"
+        android:onClick="lerTexto2"
+        android:scaleType="centerInside"
+        android:src="@drawable/bt_brincar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.919"
@@ -47,10 +45,27 @@
         app:layout_constraintVertical_bias="0.151" />
 
     <ImageView
-        android:id="@+id/bt_sim"
-        android:layout_width="240dp"
-        android:layout_height="230dp"
-        android:onClick="lerTextoSim"
+        android:id="@+id/bt_4"
+        android:layout_width="159dp"
+        android:layout_height="144dp"
+        android:foreground="?attr/selectableItemBackground"
+        android:onClick="lerTexto4"
+        android:scaleType="centerInside"
+        android:src="@drawable/bt_nao"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.919"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.801" />
+
+    <ImageView
+        android:id="@+id/bt_1"
+        android:layout_width="173dp"
+        android:layout_height="142dp"
+        android:foreground="?attr/selectableItemBackground"
+        android:onClick="lerTexto1"
+        android:scaleType="centerInside"
         android:src="@drawable/bt_sim"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -60,11 +75,28 @@
         app:layout_constraintVertical_bias="0.149" />
 
     <ImageView
-        android:id="@+id/bt_quero"
+        android:id="@+id/bt_3"
+        android:layout_width="173dp"
+        android:layout_height="142dp"
+        android:foreground="?attr/selectableItemBackground"
+        android:onClick="lerTexto3"
+        android:scaleType="centerInside"
+        android:src="@drawable/bt_sim"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.089"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.802" />
+
+    <ImageView
+        android:id="@+id/bt_config"
         android:layout_width="50dp"
         android:layout_height="47dp"
+        android:foreground="?attr/selectableItemBackground"
         android:onClick="lerTextoQuero"
-        android:src="@drawable/bt_quero"
+        android:scaleType="centerInside"
+        android:src="@drawable/bt_config"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.036"
@@ -73,14 +105,17 @@
         app:layout_constraintVertical_bias="0.92" />
 
     <ImageView
-        android:id="@+id/bt_quero_outra_imagem"
-        android:layout_width="217dp"
-        android:layout_height="87dp"
+        android:id="@+id/bt_quero"
+        android:layout_width="95dp"
+        android:layout_height="44dp"
+        android:foreground="?attr/selectableItemBackground"
         android:onClick="lerTextoQuero"
+        android:scaleType="centerInside"
         android:src="@drawable/quero"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.545"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintVertical_bias="0.108" />
 </androidx.constraintlayout.widget.ConstraintLayout>

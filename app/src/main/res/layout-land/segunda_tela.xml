@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/fundo">
+    android:background="@drawable/fundo"
+    tools:ignore="ExtraText">
 
     <ImageView
         android:id="@+id/imageViewBackground"
@@ -17,12 +18,25 @@
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintVertical_bias="1.0" /><![CDATA[
+
+    />
+
+    />
+
+
+
+
+
+
+
+    ]]>
 
     <ImageView
         android:id="@+id/bt_banheiro"
         android:layout_width="160dp"
-        android:layout_height="162dp"
+        android:layout_height="160dp"
+        android:foreground="?attr/selectableItemBackground"
         android:onClick="lerBanheiro"
         android:src="@drawable/bt_banheiro"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -30,25 +44,31 @@
         app:layout_constraintHorizontal_bias="0.129"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.024" />
+        app:layout_constraintVertical_bias="0.063" />
 
     <ImageView
         android:id="@+id/bt_beber"
-        android:layout_width="163dp"
-        android:layout_height="155dp"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:foreground="?attr/selectableItemBackground"
         android:onClick="lerBeber"
         android:src="@drawable/bt_beber"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.873"
+        app:layout_constraintHorizontal_bias="0.87"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.024" />
+        app:layout_constraintVertical_bias="0.063" /><![CDATA[
+
+    />
+
+    ]]>
 
     <ImageView
         android:id="@+id/bt_comer"
         android:layout_width="160dp"
-        android:layout_height="174dp"
+        android:layout_height="160dp"
+        android:foreground="?attr/selectableItemBackground"
         android:onClick="lerComer"
         android:src="@drawable/bt_comer"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -56,20 +76,25 @@
         app:layout_constraintHorizontal_bias="0.129"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintVertical_bias="0.936" /><![CDATA[
+
+    />
+
+    ]]>
 
     <ImageView
         android:id="@+id/bt_brincar"
-        android:layout_width="162dp"
-        android:layout_height="154dp"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:foreground="?attr/selectableItemBackground"
         android:onClick="lerBrincar"
         android:src="@drawable/bt_brincar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.869"
+        app:layout_constraintHorizontal_bias="0.87"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.972" />
+        app:layout_constraintVertical_bias="0.936" />
 
     <ImageView
         android:id="@+id/bt_voltar"
@@ -81,7 +106,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.828" />
+        app:layout_constraintVertical_bias="0.828"
+        android:foreground="?attr/selectableItemBackground"/>/>
 
     <ImageView
         android:id="@+id/imageView"
