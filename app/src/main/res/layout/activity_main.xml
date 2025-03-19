@@ -94,7 +94,7 @@
         android:layout_width="50dp"
         android:layout_height="47dp"
         android:foreground="?attr/selectableItemBackground"
-        android:onClick="lerTextoQuero"
+
         android:scaleType="centerInside"
         android:src="@drawable/bt_config"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -105,11 +105,11 @@
         app:layout_constraintVertical_bias="0.92" />
 
     <ImageView
-        android:id="@+id/bt_quero"
+        android:id="@+id/bt_lista"
         android:layout_width="95dp"
         android:layout_height="44dp"
         android:foreground="?attr/selectableItemBackground"
-        android:onClick="lerTextoQuero"
+
         android:scaleType="centerInside"
         android:src="@drawable/quero"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -118,4 +118,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.108" />
+
+    <Button
+        android:id="@+id/bt_lista_app"
+        android:layout_width="118dp"
+        android:layout_height="57dp"
+        android:text="LISTA"
+        tools:layout_editor_absoluteX="327dp"
+        tools:layout_editor_absoluteY="261dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

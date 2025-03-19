@@ -12,6 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TalksButton"
         tools:targetApi="31">
+
         <activity
             android:name=".Configuracao"
             android:screenOrientation="sensorLandscape"
@@ -19,22 +20,36 @@
             android:exported="false"
             android:label="@string/title_activity_configuracao"
             android:theme="@style/Theme.TalksButton.Fullscreen" />
+
         <activity
             android:name=".SplashScreen"
             android:exported="true"
             android:screenOrientation="sensorLandscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="sensorLandscape" />
+
         <activity
             android:name=".SegundaTela"
+            android:screenOrientation="sensorLandscape" />
+
+        <!-- 🚀 Adicionando a ContainerActivity -->
+        <activity
+            android:name=".ContainerActivity"
+            android:exported="true"
+            android:screenOrientation="sensorLandscape" />
+
+        <!-- Adicionando a WebAppActivity -->
+        <activity
+            android:name=".WebAppActivity"
+            android:exported="true"
             android:screenOrientation="sensorLandscape" />
 
     </application>

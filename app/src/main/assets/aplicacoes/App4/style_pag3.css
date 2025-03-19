@@ -1,0 +1,198 @@
+/* Estilo do body e fundo */
+body {
+    position: relative;
+    background-image: url("img/fundo_musicas.webp");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Camada semitransparente para clarear o fundo */
+body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: -1; /* Garante que a camada de fundo fique atrás do conteúdo */
+}
+
+/* Ajuste no espaçamento dos containers */
+.container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px; /* Aumenta o espaçamento entre os containers */
+    max-width: 1200px;
+    margin-top: 100px;
+    margin-bottom: 100px;
+}
+
+/* Estilo dos containers */
+.container1, .container2, .container3, .container4 {
+    width: 350px; 
+    height: 200px; 
+    padding: 40px; 
+    border-radius: 15%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: visible; /* Permite que o brilho ultrapasse os limites dos containers */
+    transition: all 0.2s ease-in-out; /* Transição */
+}
+
+.container1 { border: 3px solid #4f740c; background-color: #43e43d; }
+.container2 { border: 3px solid hsl(0, 95%, 32%); background-color: hsl(0, 98%, 64%); }
+.container3 { border: 3px solid #a19706; background-color: #f7f33a; }
+.container4 { border: 3px solid #1d1061; background-color: #384cc0; }
+
+/* Imagens dos ícones de música*/
+.container1 img, .container2 img, .container3 img, .container4 img {
+    width: 65%;
+    height: auto;
+    border: none;
+    box-shadow: none;
+    border-radius: 10%;
+}
+
+/* Ícones de edição (alterar.png) */
+.editar-icone {
+    position: absolute;
+    top: -70px;
+    left: -70px;
+    width: 220px !important;
+    height: 220px !important;
+    border: none;
+    background: none;
+    cursor: pointer;
+    visibility: hidden; /* Ícone invisível por padrão */
+    object-fit: contain; /* Mantém a proporção */
+}
+
+/* Mostrar os ícones de edição apenas no modo de edição */
+.modo-edicao .editar-icone {
+    visibility: visible;
+}
+
+/* Garante que o ícone responda ao tamanho */
+.editar-icone img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Mantém a proporção */
+}
+
+/* Ícones de edição para os containers da direita */
+.editar-icone2 {
+    position: absolute;
+    top: -70px;
+    right: -70px;
+    width: 220px !important;
+    height: 220px !important;
+    border: none;
+    background: none;
+    cursor: pointer;
+    visibility: hidden; /* Invisível por padrão */
+    object-fit: contain; /* Mantém a proporção */
+}
+
+.editar-icone:hover {
+    transform: scale(1.1); /* Amplia o botão ao passar o mouse */
+}
+
+.editar-icone2:hover {
+    transform: scale(1.1); /* Amplia o botão ao passar o mouse */
+}
+
+/* Mostrar os ícones de edição apenas no modo de edição */
+.modo-edicao .editar-icone2 {
+    visibility: visible;
+}
+
+/* Configurações do botão modo de edição */
+.config-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: transparent;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.config-button img {
+    width: 60px;
+    height: 60px;
+}
+
+/* Container central (Ícone de Gato) */
+.container0 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 150px;
+    width: 250px;
+    max-width: 80%;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.container0 img {
+    width: 100%;
+    object-fit: cover;
+    border-radius: 150px;
+}
+
+/* Animação */
+@keyframes clique {
+    0% {
+        transform: scale(1); /* Tamanho padrão */
+        box-shadow: 0 0 0 rgba(255, 255, 0, 0);
+    }
+    50% {
+        transform: scale(0.9); /* Encolhe */
+        box-shadow: 0 0 30px 15px rgba(255, 255, 0, 0.8);
+    }
+    100% {
+        transform: scale(1); /* Volta ao tamanho padrão */
+        box-shadow: 0 0 0 rgba(255, 255, 0, 0);
+    }
+}
+
+/* Ativar a animação */
+.clique-ativo {
+    animation: clique 0.4s ease-out;
+}
+
+.voltar {
+    position: fixed; /* Fixa o botão na tela, independente de rolagem */
+    top: 20px;       
+    left: 20px;     
+    z-index: 1000;   
+}
+
+.botaoVoltar {
+    width: 60px;     
+    height: 60px;
+    cursor: pointer; /* Altera o cursor */
+    transition: transform 0.2s ease; /* Adiciona animação */
+}
+
+.botaoVoltar:hover {
+    transform: scale(1.1); /* Amplia o botão ao passar o mouse */
+}
+
+.config-button:hover {
+    transform: scale(1.1); /* Amplia o botão ao passar o mouse */
+}
