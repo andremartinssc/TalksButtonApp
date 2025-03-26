@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Som dos Animais</title>
+    <title>Sons da Natureza</title>
     <link rel="stylesheet" href="styles_pag2.css">
     <script>
+        // Temporizador para inatividade (5 segundos)
         let inatividadeTemporizador;
 
         function reiniciarTemporizador() {
@@ -15,26 +16,27 @@
             }, 5000); // 5 segundos
         }
 
-        // Reinicia o temporizador ao detectar interação
+        // Reiniciar o temporizador ao detectar interação
         window.onload = reiniciarTemporizador;
         document.onmousemove = reiniciarTemporizador;
         document.onkeydown = reiniciarTemporizador;
         document.onclick = reiniciarTemporizador;
         document.onscroll = reiniciarTemporizador;
 
+        // Variável para armazenar o som atual
         let somAtual = null;
 
         function tocarSom(id) {
-            // Pausa o som atual se estiver tocando
+            // Pausar o som atual se estiver tocando
             if (somAtual && !somAtual.paused) {
                 somAtual.pause();
-                somAtual.currentTime = 0;
+                somAtual.currentTime = 0; // Reinicia o som atual
             }
 
-            // Toca o novo som
+            // Tocar o novo som
             const som = document.getElementById(id);
             som.play();
-            somAtual = som;
+            somAtual = som; // Atualiza o som atual
 
             // Adiciona animação ao botão correspondente
             const container = document.querySelector(`.container${id.slice(-1)}`);
@@ -44,7 +46,7 @@
             // Define um temporizador para parar o som após 4 segundos
             setTimeout(() => {
                 som.pause();
-                som.currentTime = 0;
+                som.currentTime = 0; // Reinicia o som
             }, 4000); // 4 segundos
         }
 
@@ -74,17 +76,18 @@
 </head>
 <body>
     <div class="container">
+        <!-- Cada container toca um som correspondente -->
         <div class="container1" onclick="tocarSom('som1')">
-            <img src="img/vaca.jpg" width="100" alt="Vaca">
+            <img src="img/chuva.jpg" width="100" alt="Chuva">
         </div>
         <div class="container2" onclick="tocarSom('som2')">
-            <img src="img/cao.jpg" width="100" alt="Cachorro">
+            <img src="img/vento.jpg" width="100" alt="Vento">
         </div>
         <div class="container3" onclick="tocarSom('som3')">
-            <img src="img/galo.jpg" width="100" alt="Galo">
+            <img src="img/onda.jpg" width="100" alt="Onda">
         </div>
         <div class="container4" onclick="tocarSom('som4')">
-            <img src="img/pato.jpg" width="100" alt="Pato">
+            <img src="img/trovao.jpg" width="100" alt="Trovão">
         </div>
     </div>
 
@@ -93,9 +96,9 @@
     </div>
 
     <!-- Áudios -->
-    <audio id="som1" src="sounds/vaca.mp3"></audio>
-    <audio id="som2" src="sounds/cao.mp3"></audio>
-    <audio id="som3" src="sounds/galo.mp3"></audio>
-    <audio id="som4" src="sounds/pato.mp3"></audio>
+    <audio id="som1" src="sounds/chuva.mp3"></audio>
+    <audio id="som2" src="sounds/vento.mp3"></audio>
+    <audio id="som3" src="sounds/ondas.mp3"></audio>
+    <audio id="som4" src="sounds/trovao.mp3"></audio>
 </body>
 </html>
