@@ -34,7 +34,7 @@
         android:layout_width="159dp"
         android:layout_height="144dp"
         android:foreground="?attr/selectableItemBackground"
-        android:onClick="lerTexto2"
+
         android:scaleType="centerInside"
         android:src="@drawable/bt_brincar"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -64,7 +64,7 @@
         android:layout_width="173dp"
         android:layout_height="142dp"
         android:foreground="?attr/selectableItemBackground"
-        android:onClick="lerTexto1"
+
         android:scaleType="centerInside"
         android:src="@drawable/bt_sim"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -79,7 +79,7 @@
         android:layout_width="173dp"
         android:layout_height="142dp"
         android:foreground="?attr/selectableItemBackground"
-        android:onClick="lerTexto3"
+
         android:scaleType="centerInside"
         android:src="@drawable/bt_sim"
         app:layout_constraintBottom_toBottomOf="parent"
