@@ -44,6 +44,11 @@
             android:exported="true"
             android:screenOrientation="sensorLandscape" />
 
+        <activity
+            android:name=".GameListActivity"
+            android:exported="true"
+            android:screenOrientation="sensorLandscape" />
+
         <!-- Adicionando a WebAppActivity -->
         <activity
             android:name=".WebAppActivity"
