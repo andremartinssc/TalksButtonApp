@@ -39,8 +39,8 @@ public class WebAppActivity extends AppCompatActivity {
 
                 // Configurações de exibição do WebView
                 WebSettings webSettings = webView.getSettings();
-                webSettings.setSupportZoom(true);  // Habilita o zoom
-                webSettings.setBuiltInZoomControls(true);  // Exibe controles de zoom
+                webSettings.setSupportZoom(false);  // Habilita o zoom
+                webSettings.setBuiltInZoomControls(false);  // Exibe controles de zoom
                 webSettings.setDisplayZoomControls(false);  // Oculta os controles de zoom padrão
                 webSettings.setLoadWithOverviewMode(true);  // Ajusta o conteúdo automaticamente
                 webSettings.setUseWideViewPort(true);  // Habilita a largura ampla do conteúdo
