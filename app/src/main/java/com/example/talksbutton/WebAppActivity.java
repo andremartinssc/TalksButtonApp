@@ -1,53 +1,89 @@
 package com.example.talksbutton;
 
 import android.os.Bundle;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class WebAppActivity extends AppCompatActivity {
 
     private WebView webView;
+    private BluetoothConnection connection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_webapp);
 
-        // Inicializando o WebView
         webView = findViewById(R.id.webView);
 
-        // Recuperando o nome da pasta passada pela MainActivity
         String appName = getIntent().getStringExtra("app_name");
 
-        // Carregar o conteúdo HTML da pasta correspondente
+        configurarWebView();
         carregarAplicativo(appName);
+        iniciarEscutaBluetooth();
     }
 
-    // Método para carregar o aplicativo HTML a partir da pasta correspondente
+    private void configurarWebView() {
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setSupportZoom(false);
+        webSettings.setBuiltInZoomControls(false);
+        webSettings.setDisplayZoomControls(false);
+        webSettings.setLoadWithOverviewMode(true);
+        webSettings.setUseWideViewPort(true);
+
+        webView.setWebViewClient(new WebViewClient()); // Evita abrir navegador externo
+    }
+
     private void carregarAplicativo(String appName) {
-        // Verifica se o nome do app foi passado corretamente
         if (appName != null) {
             try {
-                webView.getSettings().setJavaScriptEnabled(true); // Permite JavaScript, se necessário
-
-                // Configurações de exibição do WebView
-                WebSettings webSettings = webView.getSettings();
-                webSettings.setSupportZoom(false);  // Desabilita o zoom
-                webSettings.setBuiltInZoomControls(false);
-                webSettings.setDisplayZoomControls(false);
-                webSettings.setLoadWithOverviewMode(true);
-                webSettings.setUseWideViewPort(true);
-
-                // Carregar o HTML da pasta "assets/aplicacoes"
-                webView.loadUrl("file:///android_asset/aplicacoes/" + appName + "/index.html");
+                String url = "file:///android_asset/aplicacoes/" + appName + "/index.html";
+                webView.loadUrl(url);
             } catch (Exception e) {
-                Toast.makeText(this, "Erro ao carregar o aplicativo", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Erro ao carregar aplicativo", Toast.LENGTH_SHORT).show();
             }
         } else {
             Toast.makeText(this, "Aplicativo não encontrado", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void iniciarEscutaBluetooth() {
+        connection = BluetoothConnection.getInstance();
+        connection.setDataListener(data -> runOnUiThread(() -> {
+            String comando = data.trim();
+            switch (comando) {
+                case "B1":
+                    simularTecla("1");
+                    break;
+                case "B2":
+                    simularTecla("2");
+                    break;
+                case "B3":
+                    simularTecla("3");
+                    break;
+                case "B4":
+                    simularTecla("4");
+                    break;
+                default:
+                    Toast.makeText(this, "Comando desconhecido: " + comando, Toast.LENGTH_SHORT).show();
+            }
+        }));
+    }
+
+    private void simularTecla(String tecla) {
+        String js = "var e = new KeyboardEvent('keydown', { key: '" + tecla + "' }); document.dispatchEvent(e);";
+        webView.evaluateJavascript(js, null);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (connection != null) {
+            connection.setDataListener(null); // Remove o listener para evitar vazamentos de memória
         }
     }
 }
