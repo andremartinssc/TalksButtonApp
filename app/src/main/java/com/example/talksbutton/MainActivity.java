@@ -32,19 +32,19 @@ public class MainActivity extends AppCompatActivity {
 
         // Lógica de clique para cada botão
         bt1.setOnClickListener(v -> {
-            if (!isWebAppOpen) openWebApp("App1");
+             openWebApp("App1");
         });
         bt2.setOnClickListener(v -> {
-            if (!isWebAppOpen) openWebApp("App2");
+             openWebApp("App2");
         });
         bt3.setOnClickListener(v -> {
-            if (!isWebAppOpen) openWebApp("App3");
+             openWebApp("App3");
         });
         bt4.setOnClickListener(v -> {
-            if (!isWebAppOpen) openWebApp("App4");
+             openWebApp("App4");
         });
         btLista.setOnClickListener(v -> {
-            if (!isWebAppOpen) openGameList();
+            openGameList();
         });
 
         if (!hasBluetoothPermissions()) {

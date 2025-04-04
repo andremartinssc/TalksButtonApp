@@ -68,6 +68,9 @@ public class WebAppActivity extends AppCompatActivity {
                 case "B4":
                     simularTecla("4");
                     break;
+                case "B5":
+                    simularTecla("5");
+                    break;
                 default:
                     Toast.makeText(this, "Comando desconhecido: " + comando, Toast.LENGTH_SHORT).show();
             }
