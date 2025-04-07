@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissões para o Bluetooth e Localização -->
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
@@ -49,11 +48,14 @@
             android:exported="true"
             android:screenOrientation="sensorLandscape" />
 
-        <!-- Adicionando a WebAppActivity -->
         <activity
             android:name=".WebAppActivity"
             android:exported="true"
             android:screenOrientation="sensorLandscape" />
+
+        <service android:name=".BluetoothService"
+            android:enabled="true"
+            android:exported="false" />
 
     </application>
 
