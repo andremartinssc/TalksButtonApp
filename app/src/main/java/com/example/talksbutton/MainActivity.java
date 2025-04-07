@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_BT_PERMISSIONS = 1;
 
     private ImageView bt1, bt2, bt3, bt4, btLista;
-    private boolean isWebAppOpen = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(MainActivity.this, WebAppActivity.class);
         intent.putExtra("app_name", appName);
         startActivityForResult(intent, 100);
-        isWebAppOpen = true;
+
     }
 
     private void openGameList() {
@@ -119,11 +119,5 @@ public class MainActivity extends AppCompatActivity {
         BluetoothConnection.getInstance().closeConnection();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 100) {
-            isWebAppOpen = false;
-        }
-    }
+
 }
