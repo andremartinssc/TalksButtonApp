@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.KeyEvent;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -44,28 +45,8 @@ public class WebAppActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if ("bluetooth_data_received".equals(intent.getAction())) {
                 String data = intent.getStringExtra("data");
-                // Faça algo com os dados recebidos na WebAppActivity, se necessário
-                // Por exemplo, exibir em um log
                 Toast.makeText(WebAppActivity.this, "Dados Bluetooth recebidos na WebApp: " + data, Toast.LENGTH_SHORT).show();
-                // Aqui você pode processar os comandos Bluetooth específicos para a WebView
-                switch (data.trim()) {
-                    case "B1":
-                        simularTecla("1");
-                        break;
-                    case "B2":
-                        simularTecla("2");
-                        break;
-                    case "B3":
-                        simularTecla("3");
-                        break;
-                    case "B4":
-                        simularTecla("4");
-                        break;
-                    case "B5":
-                        simularTecla("5");
-                        break;
-                    // Adicione outros comandos conforme necessário
-                }
+                simularAcaoNoWebView(data.trim());
             }
         }
     };
@@ -76,11 +57,6 @@ public class WebAppActivity extends AppCompatActivity {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
                 boolean isConnected = intent.getBooleanExtra("is_connected", false);
                 Toast.makeText(WebAppActivity.this, "Bluetooth conectado na WebApp: " + isConnected, Toast.LENGTH_SHORT).show();
-                if (!isConnected) {
-                    // Tentar reconectar se a conexão for perdida (opcional, o serviço já tenta)
-                    // Intent serviceIntent = new Intent(WebAppActivity.this, BluetoothService.class);
-                    // bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
-                }
             }
         }
     };
@@ -110,8 +86,15 @@ public class WebAppActivity extends AppCompatActivity {
         webSettings.setDisplayZoomControls(false);
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setUseWideViewPort(true);
+        webSettings.setMediaPlaybackRequiresUserGesture(false);
 
-        webView.setWebViewClient(new WebViewClient()); // Evita abrir navegador externo
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                view.loadUrl(url);
+                return true;
+            }
+        });
     }
 
     private void carregarAplicativo(String appName) {
@@ -127,12 +110,28 @@ public class WebAppActivity extends AppCompatActivity {
         }
     }
 
-    private void simularTecla(String tecla) {
-        if (mBound && mService != null) {
-            String js = "var e = new KeyboardEvent('keydown', { key: '" + tecla + "' }); document.dispatchEvent(e);";
+    private void simularAcaoNoWebView(String comando) {
+        String js = "";
+        switch (comando) {
+            case "B1":
+                js = "javascript:document.getElementById('button1').focus(); var event1 = new KeyboardEvent('keydown', {'key': '1'}); document.dispatchEvent(event1);";
+                break;
+            case "B2":
+                js = "javascript:document.getElementById('button2').focus(); var event2 = new KeyboardEvent('keydown', {'key': '2'}); document.dispatchEvent(event2);";
+                break;
+            case "B3":
+                js = "javascript:document.getElementById('button3').focus(); var event3 = new KeyboardEvent('keydown', {'key': '3'}); document.dispatchEvent(event3);";
+                break;
+            case "B4":
+                js = "javascript:document.getElementById('button4').focus(); var event4 = new KeyboardEvent('keydown', {'key': '4'}); document.dispatchEvent(event4);";
+                break;
+            case "B5":
+                js = "javascript:document.dispatchEvent(new KeyboardEvent('keydown', {'key': '5'}));";
+                break;
+            // Adicione outros comandos conforme necessário
+        }
+        if (!js.isEmpty()) {
             webView.evaluateJavascript(js, null);
-        } else {
-            Toast.makeText(this, "Serviço Bluetooth não conectado.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -158,6 +157,15 @@ public class WebAppActivity extends AppCompatActivity {
         if (mBound) {
             unbindService(serviceConnection);
             mBound = false;
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed(); // Fecha a Activity se não houver histórico
         }
     }
 }

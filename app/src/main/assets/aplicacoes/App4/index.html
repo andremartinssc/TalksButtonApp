@@ -6,23 +6,6 @@
     <title>Sons da Natureza</title>
     <link rel="stylesheet" href="styles_pag2.css">
     <script>
-        // Temporizador para inatividade (5 segundos)
-        let inatividadeTemporizador;
-
-        function reiniciarTemporizador() {
-            clearTimeout(inatividadeTemporizador);
-            inatividadeTemporizador = setTimeout(function() {
-                window.location.href = 'pagina2.html';
-            }, 5000); // 5 segundos
-        }
-
-        // Reiniciar o temporizador ao detectar interação
-        window.onload = reiniciarTemporizador;
-        document.onmousemove = reiniciarTemporizador;
-        document.onkeydown = reiniciarTemporizador;
-        document.onclick = reiniciarTemporizador;
-        document.onscroll = reiniciarTemporizador;
-
         // Variável para armazenar o som atual
         let somAtual = null;
 
@@ -75,30 +58,28 @@
     </script>
 </head>
 <body>
-    <div class="container">
-        <!-- Cada container toca um som correspondente -->
-        <div class="container1" onclick="tocarSom('som1')">
-            <img src="img/chuva.jpg" width="100" alt="Chuva">
-        </div>
-        <div class="container2" onclick="tocarSom('som2')">
-            <img src="img/vento.jpg" width="100" alt="Vento">
-        </div>
-        <div class="container3" onclick="tocarSom('som3')">
-            <img src="img/onda.jpg" width="100" alt="Onda">
-        </div>
-        <div class="container4" onclick="tocarSom('som4')">
-            <img src="img/trovao.jpg" width="100" alt="Trovão">
-        </div>
+<div class="container">
+    <div class="container1" id="button1" onclick="tocarSom('som1')" tabindex="0">
+        <img src="img/chuva.jpg" width="100" alt="Chuva">
     </div>
-
-    <div class="container0">
-        <img src="img/gatinhogif.gif" alt="Gatinho animado">
+    <div class="container2" id="button2" onclick="tocarSom('som2')" tabindex="0">
+        <img src="img/vento.jpg" width="100" alt="Vento">
     </div>
+    <div class="container3" id="button3" onclick="tocarSom('som3')" tabindex="0">
+        <img src="img/onda.jpg" width="100" alt="Onda">
+    </div>
+    <div class="container4" id="button4" onclick="tocarSom('som4')" tabindex="0">
+        <img src="img/trovao.jpg" width="100" alt="Trovão">
+    </div>
+</div>
 
-    <!-- Áudios -->
-    <audio id="som1" src="sounds/chuva.mp3"></audio>
-    <audio id="som2" src="sounds/vento.mp3"></audio>
-    <audio id="som3" src="sounds/ondas.mp3"></audio>
-    <audio id="som4" src="sounds/trovao.mp3"></audio>
+<div class="container0">
+    <img src="img/gatinhogif.gif" alt="Gatinho animado">
+</div>
+
+<audio id="som1" src="sounds/chuva.mp3"></audio>
+<audio id="som2" src="sounds/vento.mp3"></audio>
+<audio id="som3" src="sounds/ondas.mp3"></audio>
+<audio id="som4" src="sounds/trovao.mp3"></audio>
 </body>
 </html>
