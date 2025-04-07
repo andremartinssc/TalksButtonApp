@@ -9,7 +9,19 @@
         // Variável para armazenar o som atual
         let somAtual = null;
 
+        const INACTIVITY_TIME = 30000; // 30 segundos
+        let inactivityTimer;
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                window.location.href = 'app://sair'; // Redireciona após inatividade
+            }, INACTIVITY_TIME);
+        }
+
         function tocarSom(id) {
+            resetInactivityTimer(); // Reinicia o timer a cada interação
+
             // Pausar o som atual se estiver tocando
             if (somAtual && !somAtual.paused) {
                 somAtual.pause();
@@ -35,6 +47,8 @@
 
         // Adiciona funcionalidade para teclas
         document.addEventListener('keydown', function (event) {
+            resetInactivityTimer(); // Reinicia o timer a cada interação
+
             switch (event.key) {
                 case '1':
                     tocarSom('som1');
@@ -55,6 +69,11 @@
                     break;
             }
         });
+
+        // Reinicia o timer em eventos de interação do mouse
+        document.addEventListener('mousemove', resetInactivityTimer);
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('touchstart', resetInactivityTimer); // Para dispositivos touch
     </script>
 </head>
 <body>
@@ -81,5 +100,10 @@
 <audio id="som2" src="sounds/vento.mp3"></audio>
 <audio id="som3" src="sounds/ondas.mp3"></audio>
 <audio id="som4" src="sounds/trovao.mp3"></audio>
+
+<script>
+    // Inicializa o timer quando a página carrega
+    document.addEventListener('DOMContentLoaded', resetInactivityTimer);
+</script>
 </body>
 </html>

@@ -8,7 +8,6 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.view.KeyEvent;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -90,6 +89,11 @@ public class WebAppActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url.equals("app://sair")) {
+                    // Comando para "sair" detectado, finalize a Activity
+                    finish();
+                    return true; // Indica que a WebView não deve carregar esta URL
+                }
                 view.loadUrl(url);
                 return true;
             }
@@ -127,6 +131,9 @@ public class WebAppActivity extends AppCompatActivity {
             case "B5":
                 js = "javascript:document.dispatchEvent(new KeyboardEvent('keydown', {'key': '5'}));";
                 break;
+            case "INATIVIDADE": // Novo comando para inatividade
+                finish(); // Finaliza a Activity quando receber o comando
+                return; // Importante para sair da função e evitar carregar "javascript:undefined"
             // Adicione outros comandos conforme necessário
         }
         if (!js.isEmpty()) {
