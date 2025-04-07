@@ -45,7 +45,6 @@ public class WebAppActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if ("bluetooth_data_received".equals(intent.getAction())) {
                 String data = intent.getStringExtra("data");
-                Toast.makeText(WebAppActivity.this, "Dados Bluetooth recebidos na WebApp: " + data, Toast.LENGTH_SHORT).show();
                 simularAcaoNoWebView(data.trim());
             }
         }

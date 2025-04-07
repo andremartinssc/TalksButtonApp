@@ -1,167 +1,124 @@
 body {
-    background-size: cover; /* Ajusta a imagem para cobrir toda a área */
-    background-repeat: no-repeat; /* Impede que a imagem se repita */
-    background-position: center; /* Centraliza a imagem */
-    background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), 
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
     url("img/sons.png") center / cover no-repeat;
+    margin: 0; /* Reset default body margin */
+    display: flex; /* Enable flexbox for body to potentially center the main container vertically */
+    justify-content: center; /* Center content horizontally */
+    align-items: center; /* Center content vertically */
+    min-height: 100vh; /* Ensure body takes at least the full viewport height */
 }
 
 .container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 colunas com larguras iguais */
-    gap: 10px; /* Espaço entre os itens */
-    max-width: 1000px; /* Largura máxima do contêiner */
-    margin: auto; /* Centraliza o contêiner */
+    grid-template-columns: repeat(2, auto);
+    grid-template-rows: repeat(2, auto);
+    gap: 20px; /* Increased gap for better spacing */
+    max-width: fit-content; /* Adjust width to content */
+    margin: 20px auto; /* Add some top/bottom margin and center horizontally */
 }
 
-.container1 {
-    width: 300px; /* Largura fixa do container */
-    height: 100px; /* Altura fixa do container */
+.container1, .container2, .container3, .container4 {
+    width: 200px;
+    height: 130px;
     text-align: center;
-    padding: 80px;
-    border: 3px solid #4f740c;
+    padding: 0;
+    border: 20px solid #4f740c;
     background-color: #1dc518;
     border-radius: 15%;
-    display: flex; /* Usando Flexbox */
-    flex-direction: column; /* Alinha itens na coluna */
-    justify-content: center; /* Centraliza verticalmente */
-    align-items: center; /* Centraliza horizontalmente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    cursor: pointer; /* Indicate interactivity */
+    transition: transform 0.3s ease-in-out; /* Add smooth hover effect */
 }
 
-.container1 img {
-    width: 70%; /* Preenche a largura do container */
-    height: auto; /* Mantém a proporção da imagem */
-    aspect-ratio: 1 / 1; /* Proporção de 1:1 */
-    object-fit: cover; /* Ajusta a imagem para preencher o espaço sem distorção */
-    border: 5px solid #ffffff; /* Borda branca ao redor da imagem */
-    border-radius: 10%; /* Bordas arredondadas */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Sombra sutil */
-    margin-top: 20px; /* Espaçamento acima da imagem */
+.container1:hover, .container2:hover, .container3:hover, .container4:hover {
+    transform: scale(1.05);
 }
 
 .container2 {
-    width: 300px; /* Largura fixa do container */
-    height: 100px; /* Altura fixa do container */
-    text-align: center;
-    padding: 80px;
-    border: 3px solid hsl(0, 95%, 32%);
+    border-color: hsl(0, 95%, 32%);
     background-color: hsl(0, 100%, 49%);
-    border-radius: 15%;
-    display: flex; /* Usando Flexbox */
-    flex-direction: column; /* Alinha itens na coluna */
-    justify-content: center; /* Centraliza verticalmente */
-    align-items: center; /* Centraliza horizontalmente */
-}
-
-.container2 img {
-    width: 70%; /* Preenche a largura do container */
-    height: auto; /* Mantém a proporção da imagem */
-    aspect-ratio: 1 / 1; /* Proporção de 1:1 */
-    object-fit: cover; /* Ajusta a imagem para preencher o espaço sem distorção */
-    border: 5px solid #ffffff; /* Borda branca ao redor da imagem */
-    border-radius: 10%; /* Bordas arredondadas */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Sombra sutil */
-    margin-top: 20px; /* Espaçamento acima da imagem */
 }
 
 .container3 {
-    width: 300px; /* Largura fixa do container */
-    height: 100px; /* Altura fixa do container */
-    text-align: center;
-    padding: 80px;
-    border: 3px solid #a19706;
+    border-color: #a19706;
     background-color: #f3ef0d;
-    border-radius: 15%;
-    display: flex; /* Usando Flexbox */
-    flex-direction: column; /* Alinha itens na coluna */
-    justify-content: center; /* Centraliza verticalmente */
-    align-items: center; /* Centraliza horizontalmente */
-}
-
-.container3 img {
-    width: 70%; /* Preenche a largura do container */
-    height: auto; /* Mantém a proporção da imagem */
-    aspect-ratio: 1 / 1; /* Proporção de 1:1 */
-    object-fit: cover; /* Ajusta a imagem para preencher o espaço sem distorção */
-    border: 5px solid #ffffff; /* Borda branca ao redor da imagem */
-    border-radius: 10%; /* Bordas arredondadas */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Sombra sutil */
-    margin-top: 20px; /* Espaçamento acima da imagem */
 }
 
 .container4 {
-    width: 300px; /* Largura fixa do container */
-    height: 100px; /* Altura fixa do container */
-    text-align: center;
-    padding: 80px;
-    border: 3px solid #0d053a;
+    border-color: #0d053a;
     background-color: #0f27b4;
-    border-radius: 15%;
-    display: flex; /* Usando Flexbox */
-    flex-direction: column; /* Alinha itens na coluna */
-    justify-content: center; /* Centraliza verticalmente */
-    align-items: center; /* Centraliza horizontalmente */
 }
 
-.container4 img {
-    width: 70%; /* Preenche a largura do container */
-    height: auto; /* Mantém a proporção da imagem */
-    aspect-ratio: 1 / 1; /* Proporção de 1:1 */
-    object-fit: cover; /* Ajusta a imagem para preencher o espaço sem distorção */
-    border: 5px solid #ffffff; /* Borda branca ao redor da imagem */
-    border-radius: 10%; /* Bordas arredondadas */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Sombra sutil */
-    margin-top: 20px; /* Espaçamento acima da imagem */
+.container1 img, .container2 img, .container3 img, .container4 img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    border-radius: inherit;
+    box-shadow: none;
+    margin-top: 0;
 }
 
 .container0 {
-    position: absolute;
-    top: 50%; /* Posição vertical no meio */
-    left: 50%; /* Posição horizontal no meio */
-    transform: translate(-50%, -50%); /* Centraliza completamente */
-    z-index: 10;
-    background-color: rgba(255, 255, 255, 0.8); /* Fundo semitransparente */
-    padding: 10px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px; /* Increased padding */
     border-radius: 150px;
     overflow: hidden;
-    width: 200px; /* Largura menor do container */
-    max-width: 80%; /* Limita a largura máxima */
-    max-height: 300px; /* Limita a altura máxima */
-    overflow-y: auto; /* Rolagem vertical */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Sombra */
+    width: 150px; /* Slightly larger */
+    max-width: 90%; /* Adjust for smaller screens */
+    max-height: 400px; /* Adjust for larger content */
+    overflow-y: auto;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); /* More pronounced shadow */
+    text-align: center;
 }
 
 .container0 img {
-    width: 100%; /* Ajusta a imagem para preencher o container */
-    object-fit: cover; /* Garante que a imagem se ajuste ao container sem distorção */
-    border-radius: 150px; /* Mantém o arredondamento da imagem */
+    width: 100%;
+    object-fit: cover;
+    border-radius: 150px;
 }
 
 .button {
     display: inline-block;
-    padding: 10px 20px;
-    margin: 5px;
+    padding: 15px 30px; /* Larger button */
+    margin: 10px;
     text-decoration: none;
     color: white;
     background-color: #4CAF50;
-    border-radius: 5px;
+    border-radius: 8px; /* Slightly more rounded */
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #45a049;
 }
 
 .highlight {
-    animation: highlight-animation 0.5s forwards; /* Duração e execução da animação */
+    animation: highlight-animation 0.5s forwards;
 }
 
 @keyframes highlight-animation {
     0% {
-        background-color: rgba(255, 255, 0, 0.5); /* Cor de fundo inicial (amarelo claro) */
-        transform: scale(1); /* Tamanho inicial */
+        background-color: rgba(255, 255, 0, 0.5);
+        transform: scale(1);
     }
     50% {
-        background-color: rgba(255, 255, 0, 0.8); /* Cor de fundo intermediária */
-        transform: scale(1.05); /* Aumenta ligeiramente o tamanho */
+        background-color: rgba(255, 255, 0, 0.8);
+        transform: scale(1.1);
     }
     100% {
-        background-color: #1dc518; /* Cor de fundo original */
-        transform: scale(1); /* Retorna ao tamanho original */
+        background-color: inherit;
+        transform: scale(1);
     }
 }

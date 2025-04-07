@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
                 boolean isConnected = intent.getBooleanExtra("is_connected", false);
-                Toast.makeText(MainActivity.this, "Bluetooth conectado: " + isConnected, Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Dispositivo Talks Button conectado: " + isConnected, Toast.LENGTH_SHORT).show();
                 if (!isConnected) {
                     // Tentar reconectar se a conexão for perdida (opcional)
                     if (mBound && mService != null) {
@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
                     bt4.performClick();
                     break;
                 default:
-                    Toast.makeText(this, "Comando desconhecido: " + data.trim(), Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(this, "Comando desconhecido: " + data.trim(), Toast.LENGTH_SHORT).show();
                     break;
             }
         });
