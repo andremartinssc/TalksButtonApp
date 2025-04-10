@@ -1,13 +1,19 @@
 package com.example.talksbutton;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -17,8 +23,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,20 +34,22 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothService mService;
     private boolean mBound = false;
 
+    private static final String CAPA_FILE_NAME = "capa.jpg";
+
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-            // Você pode definir um listener aqui se precisar de callbacks diretos
-            // mService.setDataListener(MainActivity.this::handleBluetoothData);
+            Log.d("MainActivity", "Serviço Bluetooth conectado.");
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
             mService = null;
+            Log.d("MainActivity", "Serviço Bluetooth desconectado.");
         }
     };
 
@@ -62,7 +70,6 @@ public class MainActivity extends AppCompatActivity {
                 boolean isConnected = intent.getBooleanExtra("is_connected", false);
                 Toast.makeText(MainActivity.this, "Dispositivo Talks Button conectado: " + isConnected, Toast.LENGTH_SHORT).show();
                 if (!isConnected) {
-                    // Tentar reconectar se a conexão for perdida (opcional)
                     if (mBound && mService != null) {
                         mService.connect();
                     }
@@ -83,27 +90,45 @@ public class MainActivity extends AppCompatActivity {
         bt4 = findViewById(R.id.bt_4);
         btLista = findViewById(R.id.bt_lista);
 
+        // Carregar as imagens de capa para os botões
+        loadCapaImage("App1", bt1);
+        loadCapaImage("App2", bt2);
+        loadCapaImage("App3", bt3);
+        loadCapaImage("App4", bt4);
+
         // Lógica de clique para cada botão
-        bt1.setOnClickListener(v -> {
-            openWebApp("App1");
-        });
-        bt2.setOnClickListener(v -> {
-            openWebApp("App2");
-        });
-        bt3.setOnClickListener(v -> {
-            openWebApp("App3");
-        });
-        bt4.setOnClickListener(v -> {
-            openWebApp("App4");
-        });
-        btLista.setOnClickListener(v -> {
-            openGameList();
-        });
+        bt1.setOnClickListener(v -> openWebApp("App1"));
+        bt2.setOnClickListener(v -> openWebApp("App2"));
+        bt3.setOnClickListener(v -> openWebApp("App3"));
+        bt4.setOnClickListener(v -> openWebApp("App4"));
+        btLista.setOnClickListener(v -> openGameList());
 
         if (!hasBluetoothPermissions()) {
             requestPermissions();
         } else {
             startBluetoothService();
+        }
+    }
+
+    private void loadCapaImage(String appFolder, ImageView imageView) {
+        AssetManager am = getAssets();
+        InputStream is = null;
+        try {
+            String imagePath = "aplicacoes/" + appFolder + "/" + CAPA_FILE_NAME;
+            is = am.open(imagePath);
+            Bitmap bitmap = BitmapFactory.decodeStream(is);
+            imageView.setImageBitmap(bitmap);
+        } catch (IOException e) {
+            Log.w("MainActivity", "Imagem de capa não encontrada para " + appFolder + ": " + e.getMessage());
+            // imageView.setImageResource(R.drawable.imagem_padrao);
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -129,7 +154,6 @@ public class MainActivity extends AppCompatActivity {
                     bt4.performClick();
                     break;
                 default:
-                    //Toast.makeText(this, "Comando desconhecido: " + data.trim(), Toast.LENGTH_SHORT).show();
                     break;
             }
         });
@@ -192,7 +216,5 @@ public class MainActivity extends AppCompatActivity {
             unbindService(serviceConnection);
             mBound = false;
         }
-        // Não pare o serviço aqui, ele deve continuar rodando em background
-        // stopService(new Intent(this, BluetoothService.class));
     }
 }
