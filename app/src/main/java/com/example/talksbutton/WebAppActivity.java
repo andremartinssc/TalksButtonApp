@@ -8,10 +8,10 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -28,6 +28,7 @@ public class WebAppActivity extends AppCompatActivity {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            Log.d("WebAppActivity", "Serviço Bluetooth conectado.");
             // Você pode definir um listener aqui se precisar de callbacks diretos
             // mService.setDataListener(WebAppActivity.this::handleBluetoothData);
         }
@@ -36,6 +37,7 @@ public class WebAppActivity extends AppCompatActivity {
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
             mService = null;
+            Log.d("WebAppActivity", "Serviço Bluetooth desconectado.");
         }
     };
 
@@ -54,7 +56,7 @@ public class WebAppActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
                 boolean isConnected = intent.getBooleanExtra("is_connected", false);
-                Toast.makeText(WebAppActivity.this, "Bluetooth conectado na WebApp: " + isConnected, Toast.LENGTH_SHORT).show();
+                Log.d("WebAppActivity", "Bluetooth conectado: " + isConnected);
             }
         }
     };
@@ -105,11 +107,12 @@ public class WebAppActivity extends AppCompatActivity {
             try {
                 String url = "file:///android_asset/aplicacoes/" + appName + "/index.html";
                 webView.loadUrl(url);
+                Log.d("WebAppActivity", "Carregando aplicativo: " + url);
             } catch (Exception e) {
-                Toast.makeText(this, "Erro ao carregar aplicativo", Toast.LENGTH_SHORT).show();
+                Log.e("WebAppActivity", "Erro ao carregar aplicativo", e);
             }
         } else {
-            Toast.makeText(this, "Aplicativo não encontrado", Toast.LENGTH_SHORT).show();
+            Log.w("WebAppActivity", "Aplicativo não encontrado");
         }
     }
 
@@ -138,6 +141,7 @@ public class WebAppActivity extends AppCompatActivity {
         }
         if (!js.isEmpty()) {
             webView.evaluateJavascript(js, null);
+            Log.d("WebAppActivity", "Executando JavaScript: " + js);
         }
     }
 
