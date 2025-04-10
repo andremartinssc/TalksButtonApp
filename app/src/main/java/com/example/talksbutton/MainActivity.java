@@ -1,6 +1,10 @@
 package com.example.talksbutton;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -15,6 +19,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -32,6 +39,11 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_BT_PERMISSIONS = 1;
     private static final int RECONNECT_DELAY_MS = 5000; // 5 segundos
     private static final int MAX_RECONNECT_ATTEMPTS = 5;
+    private static final int ANIMATION_DURATION_SCALE_DOWN = 150;
+    private static final int ANIMATION_DURATION_SCALE_UP = 300;
+    private static final int ANIMATION_DURATION_ROTATE = 250;
+    private static final int ANIMATION_DURATION_ALPHA = 150;
+    private static final int TRANSITION_DELAY_MS = 300;
 
     private ImageView bt1, bt2, bt3, bt4, btLista;
     private BluetoothService mService;
@@ -123,12 +135,12 @@ public class MainActivity extends AppCompatActivity {
         loadCapaImage("App3", bt3);
         loadCapaImage("App4", bt4);
 
-        // Lógica de clique para cada botão
-        bt1.setOnClickListener(v -> openWebApp("App1"));
-        bt2.setOnClickListener(v -> openWebApp("App2"));
-        bt3.setOnClickListener(v -> openWebApp("App3"));
-        bt4.setOnClickListener(v -> openWebApp("App4"));
-        btLista.setOnClickListener(v -> openGameList());
+        // Lógica de clique para cada botão com animação chamativa e atraso
+        bt1.setOnClickListener(v -> animateButtonClickAndOpen(v, "App1"));
+        bt2.setOnClickListener(v -> animateButtonClickAndOpen(v, "App2"));
+        bt3.setOnClickListener(v -> animateButtonClickAndOpen(v, "App3"));
+        bt4.setOnClickListener(v -> animateButtonClickAndOpen(v, "App4"));
+        btLista.setOnClickListener(v -> animateButtonClickAndOpen(v, "lista"));
 
         if (!hasBluetoothPermissions()) {
             requestPermissions();
@@ -225,7 +237,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
         if (requestCode == REQUEST_BT_PERMISSIONS && hasBluetoothPermissions()) {
             startBluetoothService();
         } else {
@@ -266,5 +277,59 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopReconnectTimer() {
         reconnectHandler.removeCallbacks(reconnectRunnable);
+    }
+
+    private void animateButtonClickAndOpen(View view, String action) {
+        AnimatorSet animatorSet = new AnimatorSet();
+
+        // Escala para ligeiramente menor
+        ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(view, "scaleX", 1f, 0.8f);
+        ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(view, "scaleY", 1f, 0.8f);
+        scaleDownX.setDuration(ANIMATION_DURATION_SCALE_DOWN);
+        scaleDownY.setDuration(ANIMATION_DURATION_SCALE_DOWN);
+
+        // Escala de volta com um "overshoot" mais suave
+        ObjectAnimator scaleUpX = ObjectAnimator.ofFloat(view, "scaleX", 0.8f, 1.05f, 1f);
+        ObjectAnimator scaleUpY = ObjectAnimator.ofFloat(view, "scaleY", 0.8f, 1.05f, 1f);
+        scaleUpX.setDuration(ANIMATION_DURATION_SCALE_UP);
+        scaleUpY.setDuration(ANIMATION_DURATION_SCALE_UP);
+        scaleUpX.setInterpolator(new OvershootInterpolator(1.5f));
+        scaleUpY.setInterpolator(new OvershootInterpolator(1.5f));
+
+        // Leve rotação
+        ObjectAnimator rotate = ObjectAnimator.ofFloat(view, "rotation", 0f, -8f, 8f, 0f);
+        rotate.setDuration(ANIMATION_DURATION_ROTATE);
+
+        // Leve mudança de alpha (transparência)
+        ObjectAnimator alphaDown = ObjectAnimator.ofFloat(view, "alpha", 1f, 0.6f);
+        ObjectAnimator alphaUp = ObjectAnimator.ofFloat(view, "alpha", 0.6f, 1f);
+        alphaDown.setDuration(ANIMATION_DURATION_ALPHA);
+        alphaUp.setDuration(ANIMATION_DURATION_SCALE_UP);
+        alphaUp.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        animatorSet.play(scaleDownX).with(scaleDownY).with(alphaDown);
+        animatorSet.play(scaleUpX).with(scaleUpY).with(alphaUp).after(scaleDownX);
+        animatorSet.play(rotate).after(scaleDownX);
+
+        animatorSet.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                new Handler().postDelayed(() -> {
+                    if (action.equals("App1")) {
+                        openWebApp("App1");
+                    } else if (action.equals("App2")) {
+                        openWebApp("App2");
+                    } else if (action.equals("App3")) {
+                        openWebApp("App3");
+                    } else if (action.equals("App4")) {
+                        openWebApp("App4");
+                    } else if (action.equals("lista")) {
+                        openGameList();
+                    }
+                }, TRANSITION_DELAY_MS);
+            }
+        });
+
+        animatorSet.start();
     }
 }
