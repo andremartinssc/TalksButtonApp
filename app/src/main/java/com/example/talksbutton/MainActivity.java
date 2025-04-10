@@ -12,6 +12,7 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.ImageView;
@@ -29,10 +30,15 @@ import java.io.InputStream;
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_BT_PERMISSIONS = 1;
+    private static final int RECONNECT_DELAY_MS = 5000; // 5 segundos
+    private static final int MAX_RECONNECT_ATTEMPTS = 5;
 
     private ImageView bt1, bt2, bt3, bt4, btLista;
     private BluetoothService mService;
     private boolean mBound = false;
+    private boolean isConnected = false;
+    private int reconnectAttemptCount = 0;
+    private Handler reconnectHandler = new Handler();
 
     private static final String CAPA_FILE_NAME = "capa.jpg";
 
@@ -43,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
             Log.d("MainActivity", "Serviço Bluetooth conectado.");
+            attemptBluetoothConnection();
         }
 
         @Override
@@ -67,13 +74,33 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
-                boolean isConnected = intent.getBooleanExtra("is_connected", false);
-                Toast.makeText(MainActivity.this, "Dispositivo Talks Button conectado: " + isConnected, Toast.LENGTH_SHORT).show();
-                if (!isConnected) {
-                    if (mBound && mService != null) {
-                        mService.connect();
+                boolean newConnectionState = intent.getBooleanExtra("is_connected", false);
+                if (newConnectionState != isConnected) {
+                    isConnected = newConnectionState;
+                    String message = isConnected ? "Dispositivo Talks Button conectado" : "Dispositivo Talks Button desconectado";
+                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+                    reconnectAttemptCount = 0; // Resetar tentativas após mudança de estado
+                    if (!isConnected && mBound && mService != null) {
+                        startReconnectTimer();
+                    } else {
+                        stopReconnectTimer();
                     }
                 }
+            }
+        }
+    };
+
+    private final Runnable reconnectRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mBound && mService != null && !isConnected && reconnectAttemptCount < MAX_RECONNECT_ATTEMPTS) {
+                Log.i("MainActivity", "Tentando reconectar ao dispositivo Talks Button (Tentativa " + (reconnectAttemptCount + 1) + ")");
+                mService.connect();
+                reconnectAttemptCount++;
+                startReconnectTimer(); // Agendar a próxima tentativa
+            } else if (reconnectAttemptCount >= MAX_RECONNECT_ATTEMPTS) {
+                Log.w("MainActivity", "Número máximo de tentativas de reconexão atingido.");
+                Toast.makeText(MainActivity.this, "Falha ao conectar ao dispositivo Talks Button.", Toast.LENGTH_LONG).show();
             }
         }
     };
@@ -136,6 +163,19 @@ public class MainActivity extends AppCompatActivity {
         Intent serviceIntent = new Intent(this, BluetoothService.class);
         startService(serviceIntent);
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void attemptBluetoothConnection() {
+        if (mBound && mService != null && !isConnected) {
+            Log.i("MainActivity", "Tentando conectar ao dispositivo Talks Button...");
+            mService.connect();
+            isConnected = mService.isConnected(); // Atualiza o estado imediatamente após a tentativa
+            if (!isConnected) {
+                startReconnectTimer();
+            } else {
+                stopReconnectTimer();
+            }
+        }
     }
 
     private void handleBluetoothData(String data) {
@@ -207,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothDataReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothConnectionReceiver);
+        stopReconnectTimer(); // Parar o timer se a Activity for parada
     }
 
     @Override
@@ -216,5 +257,14 @@ public class MainActivity extends AppCompatActivity {
             unbindService(serviceConnection);
             mBound = false;
         }
+        stopReconnectTimer(); // Garantir que o timer seja parado ao destruir a Activity
+    }
+
+    private void startReconnectTimer() {
+        reconnectHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS);
+    }
+
+    private void stopReconnectTimer() {
+        reconnectHandler.removeCallbacks(reconnectRunnable);
     }
 }
