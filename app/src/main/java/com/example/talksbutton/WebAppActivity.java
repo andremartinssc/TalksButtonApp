@@ -9,9 +9,12 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -21,6 +24,7 @@ public class WebAppActivity extends AppCompatActivity {
     private WebView webView;
     private BluetoothService mService;
     private boolean mBound = false;
+    private ImageButton btnVoltar;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -29,8 +33,6 @@ public class WebAppActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
             Log.d("WebAppActivity", "Serviço Bluetooth conectado.");
-            // Você pode definir um listener aqui se precisar de callbacks diretos
-            // mService.setDataListener(WebAppActivity.this::handleBluetoothData);
         }
 
         @Override
@@ -67,6 +69,7 @@ public class WebAppActivity extends AppCompatActivity {
         setContentView(R.layout.activity_webapp);
 
         webView = findViewById(R.id.webView);
+        btnVoltar = findViewById(R.id.btnVoltar);
 
         String appName = getIntent().getStringExtra("app_name");
 
@@ -76,6 +79,39 @@ public class WebAppActivity extends AppCompatActivity {
         // Conectar ao serviço Bluetooth
         Intent serviceIntent = new Intent(this, BluetoothService.class);
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        btnVoltar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackPressed();
+            }
+        });
+
+        // Configurar OnKeyListener para WebView (para teclas 1 a 4)
+        webView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    switch (keyCode) {
+                        case KeyEvent.KEYCODE_1:
+                            webView.evaluateJavascript("javascript:document.getElementById('button1').focus(); var event1 = new KeyboardEvent('keydown', {'key': '1'}); document.dispatchEvent(event1);", null);
+                            return true;
+                        case KeyEvent.KEYCODE_2:
+                            webView.evaluateJavascript("javascript:document.getElementById('button2').focus(); var event2 = new KeyboardEvent('keydown', {'key': '2'}); document.dispatchEvent(event2);", null);
+                            return true;
+                        case KeyEvent.KEYCODE_3:
+                            webView.evaluateJavascript("javascript:document.getElementById('button3').focus(); var event3 = new KeyboardEvent('keydown', {'key': '3'}); document.dispatchEvent(event3);", null);
+                            return true;
+                        case KeyEvent.KEYCODE_4:
+                            webView.evaluateJavascript("javascript:document.getElementById('button4').focus(); var event4 = new KeyboardEvent('keydown', {'key': '4'}); document.dispatchEvent(event4);", null);
+                            return true;
+                        default:
+                            return false;
+                    }
+                }
+                return false;
+            }
+        });
     }
 
     private void configurarWebView() {
@@ -132,8 +168,8 @@ public class WebAppActivity extends AppCompatActivity {
                 js = "javascript:document.getElementById('button4').focus(); var event4 = new KeyboardEvent('keydown', {'key': '4'}); document.dispatchEvent(event4);";
                 break;
             case "B5":
-                js = "javascript:document.dispatchEvent(new KeyboardEvent('keydown', {'key': '5'}));";
-                break;
+                onBackPressed(); // Simula o botão "voltar" ao receber o comando "B5"
+                return; // Importante para sair da função e evitar carregar "javascript:undefined"
             case "INATIVIDADE": // Novo comando para inatividade
                 finish(); // Finaliza a Activity quando receber o comando
                 return; // Importante para sair da função e evitar carregar "javascript:undefined"
@@ -177,5 +213,15 @@ public class WebAppActivity extends AppCompatActivity {
         } else {
             super.onBackPressed(); // Fecha a Activity se não houver histórico
         }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int keyCode = event.getKeyCode();
+        if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_5) {
+            onBackPressed();
+            return true; // Indica que o evento foi tratado
+        }
+        return super.dispatchKeyEvent(event); // Deixa outros eventos serem tratados normalmente
     }
 }

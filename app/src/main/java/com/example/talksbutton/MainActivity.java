@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
@@ -331,5 +332,29 @@ public class MainActivity extends AppCompatActivity {
         });
 
         animatorSet.start();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int keyCode = event.getKeyCode();
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_1:
+                    bt1.performClick();
+                    return true;
+                case KeyEvent.KEYCODE_2:
+                    bt2.performClick();
+                    return true;
+                case KeyEvent.KEYCODE_3:
+                    bt3.performClick();
+                    return true;
+                case KeyEvent.KEYCODE_4:
+                    bt4.performClick();
+                    return true;
+                default:
+                    break;
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 }
