@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -25,6 +26,7 @@ public class WebAppActivity extends AppCompatActivity {
     private BluetoothService mService;
     private boolean mBound = false;
     private ImageButton btnVoltar;
+    private AudioManager audioManager;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -112,6 +114,8 @@ public class WebAppActivity extends AppCompatActivity {
                 return false;
             }
         });
+
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
     }
 
     private void configurarWebView() {
@@ -200,6 +204,10 @@ public class WebAppActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopAllPlayback();
+        webView.loadUrl("about:blank");
+        webView.clearHistory();
+        webView.destroy();
         if (mBound) {
             unbindService(serviceConnection);
             mBound = false;
@@ -223,5 +231,14 @@ public class WebAppActivity extends AppCompatActivity {
             return true; // Indica que o evento foi tratado
         }
         return super.dispatchKeyEvent(event); // Deixa outros eventos serem tratados normalmente
+    }
+
+    private void stopAllPlayback() {
+        audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+        );
+        audioManager.abandonAudioFocus(null);
     }
 }

@@ -1,24 +1,53 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App1</title>
-    <style>
-        body {
-            background-color: #ffcc00;
-            color: #333333;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 50px;
-        }
-        h1 {
-            font-size: 48px;
-        }
-    </style>
+    <title>Músicas</title>54
+    <link rel="stylesheet" href="style_pag3.css">
+    <script src="script_pag3.js"></script>
 </head>
 <body>
-<h1>Bem-vindo ao App1!</h1>
-<p>Este é o conteúdo do primeiro aplicativo com cor de fundo amarela.</p>
+    <div class="container">
+        <div class="container1"  id="button1" onclick="tocarSom('som1')">
+            <img src="img/ios-music.png" class="icon-imagem" alt="Imagem 1">
+            <img src="img/alterar.png" class="editar-icone" alt="Editar 1">
+        </div>
+        <div class="container2" id="button2" onclick="tocarSom('som2')">
+            <img src="img/ios-music.png" class="icon-imagem" alt="Imagem 2">
+            <img src="img/alterar.png" class="editar-icone2" alt="Editar 2">
+        </div>
+        <div class="container3" id="button3" onclick="tocarSom('som3')">
+            <img src="img/ios-music.png" class="icon-imagem" alt="Imagem 3">
+            <img src="img/alterar.png" class="editar-icone" alt="Editar 3">
+        </div>
+        <div class="container4" id="button4" onclick="tocarSom('som4')">
+            <img src="img/ios-music.png" class="icon-imagem" alt="Imagem 4">
+            <img src="img/alterar.png" class="editar-icone2" alt="Editar 4">
+        </div>
+    </div>
+
+    <div class="container0">
+        <img src="img/gatinhogif.gif" alt="Imagem de gato">
+    </div>
+
+    <!-- Botão de Configurações
+    <button class="config-button" onclick="toggleModoEdicao()">
+        <img src="img/config.png" alt="Configurações">
+    </button>-->
+
+    <!-- Áudios -->
+    <audio id="som1" src="audio/som1.mp3"></audio>
+    <audio id="som2" src="audio/som2.mp3"></audio>
+    <audio id="som3" src="audio/som3.mp3"></audio>
+    <audio id="som4" src="audio/som4.mp3"></audio>
+
+    <!-- Botão Voltar
+    <div class="voltar">
+        <a href="index.html">
+            <img src="img/voltar.png" alt="Voltar para a página inicial" class="botaoVoltar">
+        </a>
+    </div>-->
+    
 </body>
 </html>

@@ -34,6 +34,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isConnected = false;
     private int reconnectAttemptCount = 0;
     private Handler reconnectHandler = new Handler();
+    private AtomicBoolean isAnimationRunning = new AtomicBoolean(false);
 
     private static final String CAPA_FILE_NAME = "capa.jpg";
 
@@ -137,11 +139,11 @@ public class MainActivity extends AppCompatActivity {
         loadCapaImage("App4", bt4);
 
         // Lógica de clique para cada botão com animação chamativa e atraso
-        bt1.setOnClickListener(v -> animateButtonClickAndOpen(v, "App1"));
-        bt2.setOnClickListener(v -> animateButtonClickAndOpen(v, "App2"));
-        bt3.setOnClickListener(v -> animateButtonClickAndOpen(v, "App3"));
-        bt4.setOnClickListener(v -> animateButtonClickAndOpen(v, "App4"));
-        btLista.setOnClickListener(v -> animateButtonClickAndOpen(v, "lista"));
+        bt1.setOnClickListener(v -> handleButtonClick(v, "App1"));
+        bt2.setOnClickListener(v -> handleButtonClick(v, "App2"));
+        bt3.setOnClickListener(v -> handleButtonClick(v, "App3"));
+        bt4.setOnClickListener(v -> handleButtonClick(v, "App4"));
+        btLista.setOnClickListener(v -> handleButtonClick(v, "lista"));
 
         if (!hasBluetoothPermissions()) {
             requestPermissions();
@@ -280,6 +282,12 @@ public class MainActivity extends AppCompatActivity {
         reconnectHandler.removeCallbacks(reconnectRunnable);
     }
 
+    private void handleButtonClick(View view, String action) {
+        if (isAnimationRunning.compareAndSet(false, true)) {
+            animateButtonClickAndOpen(view, action);
+        }
+    }
+
     private void animateButtonClickAndOpen(View view, String action) {
         AnimatorSet animatorSet = new AnimatorSet();
 
@@ -327,6 +335,7 @@ public class MainActivity extends AppCompatActivity {
                     } else if (action.equals("lista")) {
                         openGameList();
                     }
+                    isAnimationRunning.set(false); // Libera o bloqueio após a conclusão
                 }, TRANSITION_DELAY_MS);
             }
         });
