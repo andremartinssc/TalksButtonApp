@@ -208,6 +208,9 @@ public class MainActivity extends AppCompatActivity {
                 case "B4":
                     bt4.performClick();
                     break;
+                case "B5":
+                    btLista.performClick();
+                    break;
                 default:
                     break;
             }
@@ -359,6 +362,9 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 case KeyEvent.KEYCODE_4:
                     bt4.performClick();
+                    return true;
+                case KeyEvent.KEYCODE_5:
+                    btLista.performClick();
                     return true;
                 default:
                     break;

@@ -132,9 +132,8 @@ public class WebAppActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (url.equals("app://sair")) {
-                    // Comando para "sair" detectado, finalize a Activity
                     finish();
-                    return true; // Indica que a WebView não deve carregar esta URL
+                    return true;
                 }
                 view.loadUrl(url);
                 return true;
@@ -173,11 +172,10 @@ public class WebAppActivity extends AppCompatActivity {
                 break;
             case "B5":
                 onBackPressed(); // Simula o botão "voltar" ao receber o comando "B5"
-                return; // Importante para sair da função e evitar carregar "javascript:undefined"
-            case "INATIVIDADE": // Novo comando para inatividade
-                finish(); // Finaliza a Activity quando receber o comando
-                return; // Importante para sair da função e evitar carregar "javascript:undefined"
-            // Adicione outros comandos conforme necessário
+                return;
+            case "INATIVIDADE":
+                finish();
+                return;
         }
         if (!js.isEmpty()) {
             webView.evaluateJavascript(js, null);
@@ -219,7 +217,7 @@ public class WebAppActivity extends AppCompatActivity {
         if (webView.canGoBack()) {
             webView.goBack();
         } else {
-            super.onBackPressed(); // Fecha a Activity se não houver histórico
+            super.onBackPressed();
         }
     }
 
@@ -228,9 +226,9 @@ public class WebAppActivity extends AppCompatActivity {
         int keyCode = event.getKeyCode();
         if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_5) {
             onBackPressed();
-            return true; // Indica que o evento foi tratado
+            return true;
         }
-        return super.dispatchKeyEvent(event); // Deixa outros eventos serem tratados normalmente
+        return super.dispatchKeyEvent(event);
     }
 
     private void stopAllPlayback() {
