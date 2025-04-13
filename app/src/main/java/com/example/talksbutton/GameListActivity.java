@@ -58,7 +58,9 @@ public class GameListActivity extends AppCompatActivity {
 
         // Ação quando um item da lista for clicado (para abrir o aplicativo)
         listViewGames.setOnItemClickListener((parent, view, position, id) -> {
-            openWebApp(apps[position]);
+            selectedPosition = position; // Atualiza a posição selecionada
+            updateSelection(); // Atualiza a seleção visual
+            openWebApp(apps[position]); // Abre o aplicativo
         });
 
         // Configurar a seleção inicial
