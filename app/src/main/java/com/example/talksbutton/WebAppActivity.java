@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -78,7 +79,6 @@ public class WebAppActivity extends AppCompatActivity {
         configurarWebView();
         carregarAplicativo(appName);
 
-        // Conectar ao serviço Bluetooth
         Intent serviceIntent = new Intent(this, BluetoothService.class);
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
 
@@ -89,7 +89,6 @@ public class WebAppActivity extends AppCompatActivity {
             }
         });
 
-        // Configurar OnKeyListener para WebView (para teclas 1 a 4)
         webView.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
@@ -128,6 +127,9 @@ public class WebAppActivity extends AppCompatActivity {
         webSettings.setUseWideViewPort(true);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
 
+        webSettings.setTextZoom(100);
+        webView.setScrollBarStyle(WebView.SCROLLBARS_INSIDE_OVERLAY);
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -137,6 +139,13 @@ public class WebAppActivity extends AppCompatActivity {
                 }
                 view.loadUrl(url);
                 return true;
+            }
+        });
+
+        webView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return (event.getAction() == MotionEvent.ACTION_MOVE);
             }
         });
     }
@@ -171,7 +180,7 @@ public class WebAppActivity extends AppCompatActivity {
                 js = "javascript:document.getElementById('button4').focus(); var event4 = new KeyboardEvent('keydown', {'key': '4'}); document.dispatchEvent(event4);";
                 break;
             case "B5":
-                onBackPressed(); // Simula o botão "voltar" ao receber o comando "B5"
+                onBackPressed();
                 return;
             case "INATIVIDADE":
                 finish();
