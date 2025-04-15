@@ -18,6 +18,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.5"
-        app:srcCompat="@drawable/splash_screen" />
+        app:srcCompat="@drawable/logo_talks_colorida" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

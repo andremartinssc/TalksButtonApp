@@ -10,7 +10,7 @@
        let playerSequence = [];
        let score = 0;
        let highScore = 0;
-       const INACTIVITY_TIME = 10000; // 10 segundos
+       const INACTIVITY_TIME = 30000; // 30 segundos
        let inactivityTimer;
        const sounds = {
            1: new Audio('sounds/sound1.mp3'),
@@ -52,7 +52,7 @@
            function resetInactivityTimer() {
                clearTimeout(inactivityTimer);
                inactivityTimer = setTimeout(() => {
-                   window.location.href = 'pagina1.html'; // Redireciona após inatividade
+                   window.location.href = 'app://sair'; // Redireciona após inatividade
                }, INACTIVITY_TIME);
            }
 
@@ -201,7 +201,6 @@
 </head>
 <body>
     <div class="container_placar">
-        <h1>Jogo da Memória</h1>
         <div id="score">Pontuação Atual: 0</div>
         <div id="high-score">Pontuação Máxima: 0</div>
         <div id="message"></div>
