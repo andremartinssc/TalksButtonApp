@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_BT_PERMISSIONS = 1;
-    private static final int RECONNECT_DELAY_MS = 5000; // 5 segundos
+    private static final int RECONNECT_DELAY_MS = 5000;
     private static final int MAX_RECONNECT_ATTEMPTS = 5;
     private static final int ANIMATION_DURATION_SCALE_DOWN = 150;
     private static final int ANIMATION_DURATION_SCALE_UP = 300;
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
                     isConnected = newConnectionState;
                     String message = isConnected ? "Dispositivo Talks Button conectado" : "Dispositivo Talks Button desconectado";
                     Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-                    reconnectAttemptCount = 0; // Resetar tentativas após mudança de estado
+                    reconnectAttemptCount = 0;
                     if (!isConnected && mBound && mService != null) {
                         startReconnectTimer();
                     } else {
@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("MainActivity", "Tentando reconectar ao dispositivo Talks Button (Tentativa " + (reconnectAttemptCount + 1) + ")");
                 mService.connect();
                 reconnectAttemptCount++;
-                startReconnectTimer(); // Agendar a próxima tentativa
+                startReconnectTimer();
             } else if (reconnectAttemptCount >= MAX_RECONNECT_ATTEMPTS) {
                 Log.w("MainActivity", "Número máximo de tentativas de reconexão atingido.");
                 Toast.makeText(MainActivity.this, "Falha ao conectar ao dispositivo Talks Button.", Toast.LENGTH_LONG).show();
@@ -125,20 +125,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Inicializar os botões
         bt1 = findViewById(R.id.bt_1);
         bt2 = findViewById(R.id.bt_2);
         bt3 = findViewById(R.id.bt_3);
         bt4 = findViewById(R.id.bt_4);
         btLista = findViewById(R.id.bt_lista);
 
-        // Carregar as imagens de capa para os botões
         loadCapaImage("App1", bt1);
         loadCapaImage("App2", bt2);
         loadCapaImage("App3", bt3);
         loadCapaImage("App4", bt4);
 
-        // Lógica de clique para cada botão com animação chamativa e atraso
         bt1.setOnClickListener(v -> handleButtonClick(v, "App1"));
         bt2.setOnClickListener(v -> handleButtonClick(v, "App2"));
         bt3.setOnClickListener(v -> handleButtonClick(v, "App3"));
@@ -162,7 +159,6 @@ public class MainActivity extends AppCompatActivity {
             imageView.setImageBitmap(bitmap);
         } catch (IOException e) {
             Log.w("MainActivity", "Imagem de capa não encontrada para " + appFolder + ": " + e.getMessage());
-            // imageView.setImageResource(R.drawable.imagem_padrao);
         } finally {
             if (is != null) {
                 try {
@@ -184,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
         if (mBound && mService != null && !isConnected) {
             Log.i("MainActivity", "Tentando conectar ao dispositivo Talks Button...");
             mService.connect();
-            isConnected = mService.isConnected(); // Atualiza o estado imediatamente após a tentativa
+            isConnected = mService.isConnected();
             if (!isConnected) {
                 startReconnectTimer();
             } else {
@@ -195,23 +191,29 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleBluetoothData(String data) {
         runOnUiThread(() -> {
+            Log.d("MainActivity", "Dados Bluetooth recebidos: " + data);
             switch (data.trim()) {
                 case "B1":
                     bt1.performClick();
+                    sendLedOnCommand("App1");
                     break;
                 case "B2":
                     bt2.performClick();
+                    sendLedOnCommand("App2");
                     break;
                 case "B3":
                     bt3.performClick();
+                    sendLedOnCommand("App3");
                     break;
                 case "B4":
                     bt4.performClick();
+                    sendLedOnCommand("App4");
                     break;
                 case "B5":
                     btLista.performClick();
                     break;
                 default:
+                    Log.w("MainActivity", "Dados Bluetooth desconhecidos: " + data);
                     break;
             }
         });
@@ -264,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothDataReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothConnectionReceiver);
-        stopReconnectTimer(); // Parar o timer se a Activity for parada
+        stopReconnectTimer();
     }
 
     @Override
@@ -274,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
             unbindService(serviceConnection);
             mBound = false;
         }
-        stopReconnectTimer(); // Garantir que o timer seja parado ao destruir a Activity
+        stopReconnectTimer();
     }
 
     private void startReconnectTimer() {
@@ -288,19 +290,18 @@ public class MainActivity extends AppCompatActivity {
     private void handleButtonClick(View view, String action) {
         if (isAnimationRunning.compareAndSet(false, true)) {
             animateButtonClickAndOpen(view, action);
+            sendLedOnCommand(action);
         }
     }
 
     private void animateButtonClickAndOpen(View view, String action) {
         AnimatorSet animatorSet = new AnimatorSet();
 
-        // Escala para ligeiramente menor
         ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(view, "scaleX", 1f, 0.8f);
         ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(view, "scaleY", 1f, 0.8f);
         scaleDownX.setDuration(ANIMATION_DURATION_SCALE_DOWN);
         scaleDownY.setDuration(ANIMATION_DURATION_SCALE_DOWN);
 
-        // Escala de volta com um "overshoot" mais suave
         ObjectAnimator scaleUpX = ObjectAnimator.ofFloat(view, "scaleX", 0.8f, 1.05f, 1f);
         ObjectAnimator scaleUpY = ObjectAnimator.ofFloat(view, "scaleY", 0.8f, 1.05f, 1f);
         scaleUpX.setDuration(ANIMATION_DURATION_SCALE_UP);
@@ -308,11 +309,9 @@ public class MainActivity extends AppCompatActivity {
         scaleUpX.setInterpolator(new OvershootInterpolator(1.5f));
         scaleUpY.setInterpolator(new OvershootInterpolator(1.5f));
 
-        // Leve rotação
         ObjectAnimator rotate = ObjectAnimator.ofFloat(view, "rotation", 0f, -8f, 8f, 0f);
         rotate.setDuration(ANIMATION_DURATION_ROTATE);
 
-        // Leve mudança de alpha (transparência)
         ObjectAnimator alphaDown = ObjectAnimator.ofFloat(view, "alpha", 1f, 0.6f);
         ObjectAnimator alphaUp = ObjectAnimator.ofFloat(view, "alpha", 0.6f, 1f);
         alphaDown.setDuration(ANIMATION_DURATION_ALPHA);
@@ -329,21 +328,71 @@ public class MainActivity extends AppCompatActivity {
                 new Handler().postDelayed(() -> {
                     if (action.equals("App1")) {
                         openWebApp("App1");
+                        sendLedOffCommand("L1OFF");
                     } else if (action.equals("App2")) {
                         openWebApp("App2");
+                        sendLedOffCommand("L2OFF");
                     } else if (action.equals("App3")) {
                         openWebApp("App3");
+                        sendLedOffCommand("L3OFF");
                     } else if (action.equals("App4")) {
                         openWebApp("App4");
+                        sendLedOffCommand("L4OFF");
                     } else if (action.equals("lista")) {
                         openGameList();
                     }
-                    isAnimationRunning.set(false); // Libera o bloqueio após a conclusão
+                    isAnimationRunning.set(false);
                 }, TRANSITION_DELAY_MS);
             }
         });
 
         animatorSet.start();
+    }
+
+    private void sendLedOnCommand(String action) {
+        if (mBound && mService != null) {
+            String command = "";
+            switch (action) {
+                case "App1":
+                    command = "L1ON";
+                    break;
+                case "App2":
+                    command = "L2ON";
+                    break;
+                case "App3":
+                    command = "L3ON";
+                    break;
+                case "App4":
+                    command = "L4ON";
+                    break;
+                default:
+                    Log.e("MainActivity", "Erro ao enviar comando: ação desconhecida.");
+                    return;
+            }
+            Log.d("MainActivity", "Enviando comando LED ON: " + command);
+            mService.sendData(command + "\n"); // Adiciona nova linha
+            try {
+                Thread.sleep(100); // Atraso entre comandos
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Log.e("MainActivity", "Erro ao enviar comando: serviço Bluetooth não conectado.");
+        }
+    }
+
+    private void sendLedOffCommand(String command) {
+        if (mBound && mService != null) {
+            Log.d("MainActivity", "Enviando comando LED OFF: " + command);
+            mService.sendData(command + "\n"); // Adiciona nova linha
+            try {
+                Thread.sleep(50); // Atraso entre comandos
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Log.e("MainActivity", "Erro ao enviar comando: serviço Bluetooth não conectado.");
+        }
     }
 
     @Override
