@@ -8,6 +8,8 @@
     <script>
         // Variável para armazenar o som atual
         let somAtual = null;
+        let ledAtivo = null; // Armazena o número do LED atualmente aceso
+        let ledTimeout;     // Variável para controlar o timeout do LED
 
         const INACTIVITY_TIME = 30000; // 30 segundos
         let inactivityTimer;
@@ -19,30 +21,61 @@
             }, INACTIVITY_TIME);
         }
 
+        function desligarLed(ledNumero) {
+            window.location.href = `talksbutton://led/${ledNumero}/0`;
+            console.log(`LED ${ledNumero} desligado`);
+            ledAtivo = null;
+        }
+
+        function acionarLed(ledNumero, duracao) {
+            // Limpa qualquer timeout anterior para o LED
+            clearTimeout(ledTimeout);
+
+            // Desliga o LED atualmente aceso, se houver um diferente
+            if (ledAtivo !== null && ledAtivo !== ledNumero) {
+                desligarLed(ledAtivo);
+            }
+
+            // Aciona o novo LED
+            window.location.href = `talksbutton://led/${ledNumero}/${duracao}`;
+            console.log(`LED ${ledNumero} acionado por ${duracao}ms`);
+            ledAtivo = ledNumero; // Atualiza o LED atualmente aceso
+
+            // Define um novo timeout para desligar o LED após a duração especificada
+            ledTimeout = setTimeout(() => {
+                if (ledAtivo === ledNumero) { // Verifica se o mesmo LED ainda está ativo
+                    desligarLed(ledNumero);
+                }
+            }, duracao);
+        }
+
         function tocarSom(id) {
             resetInactivityTimer(); // Reinicia o timer a cada interação
 
-            // Pausar o som atual se estiver tocando
-            if (somAtual && !somAtual.paused) {
-                somAtual.pause();
-                somAtual.currentTime = 0; // Reinicia o som atual
+            const numeroBotao = id.slice(-1);
+            const som = document.getElementById(id);
+
+            // Reiniciar o som se o mesmo botão for tocado novamente
+            if (somAtual && somAtual.id === id) {
+                somAtual.currentTime = 0;
+                somAtual.play();
+            } else {
+                // Pausar o som anterior se um novo botão for tocado
+                if (somAtual) {
+                    somAtual.pause();
+                    somAtual.currentTime = 0;
+                }
+                som.play();
+                somAtual = som; // Atualiza o som atual
             }
 
-            // Tocar o novo som
-            const som = document.getElementById(id);
-            som.play();
-            somAtual = som; // Atualiza o som atual
-
             // Adiciona animação ao botão correspondente
-            const container = document.querySelector(`.container${id.slice(-1)}`);
+            const container = document.querySelector(`.container${numeroBotao}`);
             container.classList.add('highlight');
             setTimeout(() => container.classList.remove('highlight'), 400);
 
-            // Define um temporizador para parar o som após 4 segundos
-            setTimeout(() => {
-                som.pause();
-                som.currentTime = 0; // Reinicia o som
-            }, 4000); // 4 segundos
+            // Aciona o LED correspondente por 2 segundos (a contagem reinicia a cada toque)
+            acionarLed(numeroBotao, 2000);
         }
 
         // Adiciona funcionalidade para teclas

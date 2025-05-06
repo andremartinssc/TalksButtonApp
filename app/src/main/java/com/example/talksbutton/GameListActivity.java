@@ -4,8 +4,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -14,10 +16,14 @@ import android.widget.ListView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class GameListActivity extends AppCompatActivity {
 
     private ListView listViewGames;
-    private String[] apps;
+    private List<String> appsList;
     private int selectedPosition = 0; // Posição do item selecionado
     private ArrayAdapter<String> adapter;
 
@@ -37,12 +43,13 @@ public class GameListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_game_list);
 
         listViewGames = findViewById(R.id.list_view_games);
+        appsList = new ArrayList<>();
 
-        // Lista de aplicativos para exibição
-        apps = new String[]{"App1", "App2", "App3", "App4"};
+        // Busca dinamicamente as pastas dentro de 'aplicacoes'
+        loadAppsFromAssets();
 
         // Adapter para preencher a ListView
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, apps) {
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, appsList) {
             @Override
             public View getView(int position, View convertView, android.view.ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
@@ -60,11 +67,33 @@ public class GameListActivity extends AppCompatActivity {
         listViewGames.setOnItemClickListener((parent, view, position, id) -> {
             selectedPosition = position; // Atualiza a posição selecionada
             updateSelection(); // Atualiza a seleção visual
-            openWebApp(apps[position]); // Abre o aplicativo
+            openWebApp(appsList.get(position)); // Abre o aplicativo
         });
 
         // Configurar a seleção inicial
         updateSelection();
+    }
+
+    private void loadAppsFromAssets() {
+        AssetManager assetManager = getAssets();
+        try {
+            String[] appFolders = assetManager.list("aplicacoes");
+            if (appFolders != null) {
+                for (String folder : appFolders) {
+                    // Adiciona apenas se for um diretório (uma pasta de aplicativo)
+                    try {
+                        String[] files = assetManager.list("aplicacoes/" + folder);
+                        if (files != null && files.length > 0) {
+                            appsList.add(folder);
+                        }
+                    } catch (IOException e) {
+                        // Se não for um diretório, a listagem falhará, podemos ignorar
+                    }
+                }
+            }
+        } catch (IOException e) {
+            Log.e("GameListActivity", "Erro ao listar assets", e);
+        }
     }
 
     private void openWebApp(String appName) {
@@ -93,17 +122,17 @@ public class GameListActivity extends AppCompatActivity {
     }
 
     private void selectNextApp() {
-        selectedPosition = (selectedPosition + 1) % apps.length;
+        selectedPosition = (selectedPosition + 1) % appsList.size();
         updateSelection();
     }
 
     private void selectPreviousApp() {
-        selectedPosition = (selectedPosition - 1 + apps.length) % apps.length;
+        selectedPosition = (selectedPosition - 1 + appsList.size()) % appsList.size();
         updateSelection();
     }
 
     private void openSelectedApp() {
-        openWebApp(apps[selectedPosition]);
+        openWebApp(appsList.get(selectedPosition));
     }
 
     private void updateSelection() {

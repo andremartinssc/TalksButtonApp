@@ -1,3 +1,4 @@
+// WebAppActivity.java
 package com.example.talksbutton;
 
 import android.content.BroadcastReceiver;
@@ -28,6 +29,7 @@ public class WebAppActivity extends AppCompatActivity {
     private boolean mBound = false;
     private ImageButton btnVoltar;
     private AudioManager audioManager;
+    private LedController ledController; // Adicionando referência ao LedController
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -36,12 +38,15 @@ public class WebAppActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
             Log.d("WebAppActivity", "Serviço Bluetooth conectado.");
+            // Inicializa LedController após a conexão com o serviço
+            ledController = new LedController(mService, mBound);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
             mService = null;
+            ledController = null; // Limpa a referência ao LedController
             Log.d("WebAppActivity", "Serviço Bluetooth desconectado.");
         }
     };
@@ -62,6 +67,10 @@ public class WebAppActivity extends AppCompatActivity {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
                 boolean isConnected = intent.getBooleanExtra("is_connected", false);
                 Log.d("WebAppActivity", "Bluetooth conectado: " + isConnected);
+                // Garante que LedController seja inicializado após a conexão
+                if (isConnected && mBound && mService != null && ledController == null) {
+                    ledController = new LedController(mService, mBound);
+                }
             }
         }
     };
@@ -133,9 +142,13 @@ public class WebAppActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url.equals("app://sair")) {
+                if (url.startsWith("app://sair")) {
                     finish();
                     return true;
+                } else if (url.startsWith("talksbutton://led/")) {
+                    // Intercepta comandos de LED simplificados
+                    processarComandoLedSimplificado(url);
+                    return true; // Indica que o Android lidou com a URL
                 }
                 view.loadUrl(url);
                 return true;
@@ -189,6 +202,28 @@ public class WebAppActivity extends AppCompatActivity {
         if (!js.isEmpty()) {
             webView.evaluateJavascript(js, null);
             Log.d("WebAppActivity", "Executando JavaScript: " + js);
+        }
+    }
+
+    private void processarComandoLedSimplificado(String url) {
+        try {
+            String comandoCru = url.replace("talksbutton://led/", "");
+            String[] partes = comandoCru.split("/");
+
+            if (partes.length == 2) {
+                int numeroLed = Integer.parseInt(partes[0]);
+                long duracao = Long.parseLong(partes[1]);
+
+                if (ledController != null) {
+                    ledController.ligarLed(numeroLed, duracao);
+                } else {
+                    Log.w("WebAppActivity", "LedController não inicializado.");
+                }
+            } else {
+                Log.w("WebAppActivity", "Formato de comando de LED simplificado inválido: " + url + ". Use: talksbutton://led/NUMERO_LED/DURACAO_MS");
+            }
+        } catch (NumberFormatException e) {
+            Log.e("WebAppActivity", "Erro ao analisar comando de LED simplificado: " + url, e);
         }
     }
 

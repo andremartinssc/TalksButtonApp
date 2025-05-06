@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private int reconnectAttemptCount = 0;
     private Handler reconnectHandler = new Handler();
     private AtomicBoolean isAnimationRunning = new AtomicBoolean(false);
+    private LedController ledController; // Instância do LedController
 
     private static final String CAPA_FILE_NAME = "capa.jpg";
 
@@ -65,12 +66,14 @@ public class MainActivity extends AppCompatActivity {
             mBound = true;
             Log.d("MainActivity", "Serviço Bluetooth conectado.");
             attemptBluetoothConnection();
+            ledController = new LedController(mService, mBound); // Inicializa o LedController
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
             mService = null;
+            ledController = null; // Limpa a referência ao LedController
             Log.d("MainActivity", "Serviço Bluetooth desconectado.");
         }
     };
@@ -195,19 +198,15 @@ public class MainActivity extends AppCompatActivity {
             switch (data.trim()) {
                 case "B1":
                     bt1.performClick();
-                    sendLedOnCommand("App1");
                     break;
                 case "B2":
                     bt2.performClick();
-                    sendLedOnCommand("App2");
                     break;
                 case "B3":
                     bt3.performClick();
-                    sendLedOnCommand("App3");
                     break;
                 case "B4":
                     bt4.performClick();
-                    sendLedOnCommand("App4");
                     break;
                 case "B5":
                     btLista.performClick();
@@ -290,7 +289,29 @@ public class MainActivity extends AppCompatActivity {
     private void handleButtonClick(View view, String action) {
         if (isAnimationRunning.compareAndSet(false, true)) {
             animateButtonClickAndOpen(view, action);
-            sendLedOnCommand(action);
+            // Controle do LED agora é feito aqui usando LedController
+            if (ledController != null) {
+                switch (action) {
+                    case "App1":
+                        ledController.ligarLed(1, 1000); // Liga LED 1 por 2 segundo1
+                        break;
+                    case "App2":
+                        ledController.ligarLed(2, 1000); // Liga LED 2 por 3 segundo1
+                        break;
+                    case "App3":
+                        ledController.ligarLed(3, 1000); // Liga LED 3 por 1.5 segundo1
+                        break;
+                    case "App4":
+                        ledController.ligarLed(4, 1000); // Liga LED 4 por 1 segundo
+                        break;
+                    case "lista":
+                        // Não controlar LED ao clicar na lista
+                        break;
+                    default:
+                        Log.e("MainActivity", "Ação desconhecida para controle de LED: " + action);
+                        break;
+                }
+            }
         }
     }
 
@@ -328,16 +349,12 @@ public class MainActivity extends AppCompatActivity {
                 new Handler().postDelayed(() -> {
                     if (action.equals("App1")) {
                         openWebApp("App1");
-                        sendLedOffCommand("L1OFF");
                     } else if (action.equals("App2")) {
                         openWebApp("App2");
-                        sendLedOffCommand("L2OFF");
                     } else if (action.equals("App3")) {
                         openWebApp("App3");
-                        sendLedOffCommand("L3OFF");
                     } else if (action.equals("App4")) {
                         openWebApp("App4");
-                        sendLedOffCommand("L4OFF");
                     } else if (action.equals("lista")) {
                         openGameList();
                     }
@@ -347,52 +364,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         animatorSet.start();
-    }
-
-    private void sendLedOnCommand(String action) {
-        if (mBound && mService != null) {
-            String command = "";
-            switch (action) {
-                case "App1":
-                    command = "L1ON";
-                    break;
-                case "App2":
-                    command = "L2ON";
-                    break;
-                case "App3":
-                    command = "L3ON";
-                    break;
-                case "App4":
-                    command = "L4ON";
-                    break;
-                default:
-                    Log.e("MainActivity", "Erro ao enviar comando: ação desconhecida.");
-                    return;
-            }
-            Log.d("MainActivity", "Enviando comando LED ON: " + command);
-            mService.sendData(command + "\n"); // Adiciona nova linha
-            try {
-                Thread.sleep(100); // Atraso entre comandos
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Log.e("MainActivity", "Erro ao enviar comando: serviço Bluetooth não conectado.");
-        }
-    }
-
-    private void sendLedOffCommand(String command) {
-        if (mBound && mService != null) {
-            Log.d("MainActivity", "Enviando comando LED OFF: " + command);
-            mService.sendData(command + "\n"); // Adiciona nova linha
-            try {
-                Thread.sleep(50); // Atraso entre comandos
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Log.e("MainActivity", "Erro ao enviar comando: serviço Bluetooth não conectado.");
-        }
     }
 
     @Override
