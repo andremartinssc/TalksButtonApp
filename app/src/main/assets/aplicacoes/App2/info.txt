@@ -1,0 +1,3 @@
+titulo: Jogo da Memoria
+Descricao: Repita as sequencias corretamente para fazer pontos
+Autor: Andre R. Martins

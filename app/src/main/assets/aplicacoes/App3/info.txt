@@ -1,0 +1,3 @@
+titulo: Integrações
+Descricao: Abre Aplicativos Externos
+Autor: Vinicios Pimentel
