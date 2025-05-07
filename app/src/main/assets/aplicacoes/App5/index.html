@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Jogo da Marmota</title>
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<h1>Jogo da Marmota</h1>
+<div class="pontuacao-tempo">
+    <p><img src="img/relogio.png" alt="Relógio"> Tempo restante: <span id="tempo">30</span>s</p>
+    <button onclick="iniciarJogo()">Iniciar</button>
+</div>
+
+<!-- Pontuação na lateral -->
+<div class="pontuacao">
+    <p>Pontuação: <span id="pontuacao">0</span></p>
+</div>
+
+<div class="tabuleiro">
+    <div class="posicao" id="posicao1"></div>
+    <div class="posicao" id="posicao2"></div>
+    <div class="posicao" id="posicao3"></div>
+    <div class="posicao" id="posicao4"></div>
+
+    <div class="gato-central">
+        <img src="img/gatinhogif.gif" alt="Gato" />
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

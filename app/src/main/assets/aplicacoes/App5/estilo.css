@@ -1,0 +1,141 @@
+/* Resetando margens e padding para uniformizar o layout */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Comic Sans MS', cursive, sans-serif;  /* Fonte divertida para crianças */
+  background-color: #f0f8ff;
+  text-align: center;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+}
+
+/* Título principal */
+h1 {
+  font-size: 3em;
+  color: #ff6347;  /* Tom de vermelho vibrante */
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Seção de tempo e botão */
+.pontuacao-tempo {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pontuacao-tempo p {
+  font-size: 1.2em;
+  color: #555;
+}
+
+.pontuacao-tempo button {
+  padding: 15px 30px;
+  font-size: 1.5em;
+  cursor: pointer;
+  background-color: #ff6347;  /* Cor vibrante */
+  border: none;
+  border-radius: 10px;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+.pontuacao-tempo button:hover {
+  background-color: #ff4500;  /* Tom mais forte de vermelho ao passar o mouse */
+}
+
+.tabuleiro {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 150px);
+  grid-template-rows: repeat(2, 150px);
+  gap: 20px;
+  justify-content: center;
+  margin: 0 auto;
+  margin-top: 40px;
+}
+
+.posicao {
+  background-color: #ddd;
+  border-radius: 15px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.posicao:hover {
+  transform: scale(1.1);
+}
+
+/* Cores vibrantes para cada posição */
+#posicao1 { background-color: #4caf50; } /* verde */
+#posicao2 { background-color: #f44336; } /* vermelho */
+#posicao3 { background-color: #ffeb3b; } /* amarelo */
+#posicao4 { background-color: #2196f3; } /* azul */
+
+/* Gato central com borda arredondada e sombra, sem animação de rotação */
+.gato-central {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.gato-central img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Estilo da imagem da marmota */
+.marmota {
+  width: 80%;
+  height: auto;
+  pointer-events: none;
+}
+
+/* Relógio do tempo */
+#tempo {
+  color: #ff6347;
+  font-weight: bold;
+  font-size: 1.3em;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.pontuacao-tempo img {
+  width: 30px;
+  height: 30px;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* Posicionamento da pontuação à direita */
+.pontuacao {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 1.5em;
+  color: #ff6347;
+  font-weight: bold;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
