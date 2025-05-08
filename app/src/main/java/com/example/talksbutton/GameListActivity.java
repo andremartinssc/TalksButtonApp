@@ -1,13 +1,16 @@
 package com.example.talksbutton;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,14 +23,24 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 class ViewHolder {
     ImageView coverImageView;
@@ -39,11 +52,16 @@ class ViewHolder {
 
 public class GameListActivity extends AppCompatActivity {
 
+    private static final String ASSET_APPS_FOLDER = "aplicacoes";
+    private static final String[] FIXED_APP_FOLDERS = {"App1", "App2", "App3", "App4"}; // Correção: "App" maiúsculo
+    private static final int REQUEST_STORAGE_PERMISSION = 101;
+
     private ListView listViewGames;
     private List<AppData> appsList;
     private int selectedPosition = 0;
     private AppListAdapter adapter;
-    private Button backToMainButton; // Adicionei a declaração do botão
+    private Button backToMainButton;
+    private Button importButton;
 
     private final BroadcastReceiver bluetoothDataReceiver = new BroadcastReceiver() {
         @Override
@@ -54,6 +72,8 @@ public class GameListActivity extends AppCompatActivity {
             }
         }
     };
+
+    private ActivityResultLauncher<Intent> filePickerLauncher;
 
     private static class AppData {
         String folderName;
@@ -107,16 +127,21 @@ public class GameListActivity extends AppCompatActivity {
 
                 final String appToDelete = currentApp.folderName;
                 holder.deleteButton.setOnClickListener(v -> {
-                    Toast.makeText(getContext(), "Excluir " + appToDelete, Toast.LENGTH_SHORT).show();
+                    if (!isFixedApp(appToDelete)) {
+                        // Implementar lógica de exclusão aqui (usar appToDelete)
+                        Toast.makeText(getContext(), "Excluir " + appToDelete, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "Este aplicativo não pode ser excluído", Toast.LENGTH_SHORT).show();
+                    }
                 });
 
                 final String appToApply = currentApp.folderName;
                 holder.applyButton.setOnClickListener(v -> {
                     Toast.makeText(getContext(), "Aplicar " + appToApply + " à tela inicial", Toast.LENGTH_SHORT).show();
+                    // Implementar lógica para aplicar à tela inicial aqui (usar appToApply)
                 });
 
                 if (position == selectedPosition) {
-                    // Definir uma cor de fundo que pareça uma borda sutil (cinza claro com baixa opacidade)
                     convertView.setBackgroundColor(0x1A808080); // Cinza com baixa opacidade
                 } else {
                     convertView.setBackgroundColor(Color.TRANSPARENT);
@@ -125,6 +150,15 @@ public class GameListActivity extends AppCompatActivity {
 
             return convertView;
         }
+
+        private boolean isFixedApp(String folderName) {
+            for (String fixedFolder : FIXED_APP_FOLDERS) {
+                if (fixedFolder.equals(folderName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     @Override
@@ -132,12 +166,15 @@ public class GameListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game_list);
 
-        backToMainButton = findViewById(R.id.btn_back_to_main); // Inicializei o botão
+        backToMainButton = findViewById(R.id.btn_back_to_main);
         backToMainButton.setOnClickListener(v -> {
             Intent intent = new Intent(GameListActivity.this, MainActivity.class);
             startActivity(intent);
-            finish(); // Opcional: finalizar a GameListActivity ao voltar
+            finish();
         });
+
+        importButton = findViewById(R.id.btn_import);
+        importButton.setOnClickListener(v -> checkStoragePermissionAndImport());
 
         listViewGames = findViewById(R.id.list_view_games);
         appsList = new ArrayList<>();
@@ -148,22 +185,129 @@ public class GameListActivity extends AppCompatActivity {
         listViewGames.setAdapter(adapter);
 
         updateSelection();
+
+        filePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            importZipFile(uri);
+                        } else {
+                            Toast.makeText(this, "Erro ao selecionar o arquivo.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
+
+    private void checkStoragePermissionAndImport() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED) {
+            openFilePicker();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    REQUEST_STORAGE_PERMISSION);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_STORAGE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openFilePicker();
+            } else {
+                Toast.makeText(this, "Permissão de armazenamento negada.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void openFilePicker() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("application/zip");
+        filePickerLauncher.launch(intent);
+    }
+
+    private void importZipFile(Uri zipUri) {
+        AssetManager assetManager = getAssets();
+        File assetsDir = new File(getFilesDir().getParentFile(), "assets/" + ASSET_APPS_FOLDER);
+        if (!assetsDir.exists()) {
+            assetsDir.mkdirs();
+        }
+
+        try (InputStream inputStream = getContentResolver().openInputStream(zipUri);
+             ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
+
+            String nextAppFolderName = getNextAvailableAppFolder(assetManager);
+            File newAppFolder = new File(assetsDir, nextAppFolderName);
+            if (!newAppFolder.exists()) {
+                newAppFolder.mkdirs();
+            }
+
+            ZipEntry zipEntry;
+            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                String entryName = zipEntry.getName();
+                File outputFile = new File(newAppFolder, entryName);
+
+                if (zipEntry.isDirectory()) {
+                    outputFile.mkdirs();
+                } else {
+                    try (OutputStream outputStream = new FileOutputStream(outputFile)) {
+                        byte[] buffer = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = zipInputStream.read(buffer)) != -1) {
+                            outputStream.write(buffer, 0, bytesRead);
+                        }
+                    }
+                }
+                zipInputStream.closeEntry();
+            }
+            Toast.makeText(this, "Aplicativo importado para " + nextAppFolderName, Toast.LENGTH_SHORT).show();
+            // Recarregar a lista de aplicativos após a importação
+            appsList.clear();
+            loadAppsWithCoversFromAssets();
+            adapter.notifyDataSetChanged();
+
+        } catch (IOException e) {
+            Log.e("GameListActivity", "Erro ao importar arquivo zip: " + e.getMessage());
+            Toast.makeText(this, "Erro ao importar arquivo zip.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String getNextAvailableAppFolder(AssetManager assetManager) {
+        int appNumber = 5;
+        while (true) {
+            String folderName = "App" + appNumber; // Correção: "App" maiúsculo
+            try {
+                String[] files = assetManager.list(ASSET_APPS_FOLDER + "/" + folderName);
+                if (files == null) {
+                    return folderName;
+                }
+                appNumber++;
+            } catch (IOException e) {
+                // A pasta não existe, então podemos usá-la
+                return folderName;
+            }
+        }
     }
 
     private void loadAppsWithCoversFromAssets() {
         AssetManager assetManager = getAssets();
         try {
-            String[] appFolders = assetManager.list("aplicacoes");
+            String[] appFolders = assetManager.list(ASSET_APPS_FOLDER);
             if (appFolders != null) {
+                appsList.clear(); // Limpar a lista antes de recarregar
                 for (String folder : appFolders) {
                     try {
                         InputStream coverInputStream = null;
                         Bitmap coverBitmap = null;
-                        String displayName = folder;
+                        String displayName = folder; // Nome da pasta como padrão
 
+                        // Tentar ler o arquivo de configuração para obter o displayName (titulo)
                         InputStream configInputStream = null;
                         try {
-                            configInputStream = assetManager.open("aplicacoes/" + folder + "/info.txt");
+                            configInputStream = assetManager.open(ASSET_APPS_FOLDER + "/" + folder + "/info.txt");
                             Scanner s = new Scanner(configInputStream).useDelimiter("\\A");
                             String configContent = s.hasNext() ? s.next() : "";
                             String[] lines = configContent.split("\n");
@@ -182,7 +326,7 @@ public class GameListActivity extends AppCompatActivity {
                         }
 
                         try {
-                            coverInputStream = assetManager.open("aplicacoes/" + folder + "/capa.jpg");
+                            coverInputStream = assetManager.open(ASSET_APPS_FOLDER + "/" + folder + "/capa.jpg");
                             coverBitmap = BitmapFactory.decodeStream(coverInputStream);
                         } catch (IOException e) {
                             Log.w("GameListActivity", "Capa não encontrada para: " + folder);
@@ -192,7 +336,7 @@ public class GameListActivity extends AppCompatActivity {
                             }
                         }
 
-                        String[] files = assetManager.list("aplicacoes/" + folder);
+                        String[] files = assetManager.list(ASSET_APPS_FOLDER + "/" + folder);
                         if (files != null && files.length > 0) {
                             appsList.add(new AppData(folder, displayName, coverBitmap));
                         }
