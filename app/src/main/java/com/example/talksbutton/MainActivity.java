@@ -32,6 +32,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.example.talksbutton.AppButtonPreferenceManager; // Importa o AppButtonPreferenceManager
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -55,8 +57,18 @@ public class MainActivity extends AppCompatActivity {
     private Handler reconnectHandler = new Handler();
     private AtomicBoolean isAnimationRunning = new AtomicBoolean(false);
     private LedController ledController; // Instância do LedController
+    private Context context;
 
     private static final String CAPA_FILE_NAME = "capa.jpg";
+    private final BroadcastReceiver appButtonChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("APP_BUTTON_MAPPING_CHANGED".equals(intent.getAction())) {
+                Log.d("MainActivity", "Recebido broadcast de atualização dos botões.");
+                updateButtonCovers(); // Atualiza as capas dos botões
+            }
+        }
+    };
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -127,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        context = this;
 
         bt1 = findViewById(R.id.bt_1);
         bt2 = findViewById(R.id.bt_2);
@@ -134,10 +147,8 @@ public class MainActivity extends AppCompatActivity {
         bt4 = findViewById(R.id.bt_4);
         btLista = findViewById(R.id.bt_lista);
 
-        loadCapaImage("App1", bt1);
-        loadCapaImage("App2", bt2);
-        loadCapaImage("App3", bt3);
-        loadCapaImage("App4", bt4);
+        // Inicializa as capas dos botões com os aplicativos salvos
+        updateButtonCovers();
 
         bt1.setOnClickListener(v -> handleButtonClick(v, "App1"));
         bt2.setOnClickListener(v -> handleButtonClick(v, "App2"));
@@ -162,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
             imageView.setImageBitmap(bitmap);
         } catch (IOException e) {
             Log.w("MainActivity", "Imagem de capa não encontrada para " + appFolder + ": " + e.getMessage());
+            imageView.setImageResource(android.R.drawable.ic_menu_gallery);
         } finally {
             if (is != null) {
                 try {
@@ -258,6 +270,8 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(bluetoothDataReceiver, dataFilter);
         IntentFilter connectionFilter = new IntentFilter("bluetooth_connection_state");
         LocalBroadcastManager.getInstance(this).registerReceiver(bluetoothConnectionReceiver, connectionFilter);
+        // Registra o receiver para atualizações de botões
+        LocalBroadcastManager.getInstance(this).registerReceiver(appButtonChangedReceiver, new IntentFilter("APP_BUTTON_MAPPING_CHANGED"));
     }
 
     @Override
@@ -265,6 +279,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothDataReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothConnectionReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(appButtonChangedReceiver); // Unregister
         stopReconnectTimer();
     }
 
@@ -293,19 +308,18 @@ public class MainActivity extends AppCompatActivity {
             if (ledController != null) {
                 switch (action) {
                     case "App1":
-                        ledController.ligarLed(1, 1000); // Liga LED 1 por 2 segundo1
+                        ledController.ligarLed(1, 1000);
                         break;
                     case "App2":
-                        ledController.ligarLed(2, 1000); // Liga LED 2 por 3 segundo1
+                        ledController.ligarLed(2, 1000);
                         break;
                     case "App3":
-                        ledController.ligarLed(3, 1000); // Liga LED 3 por 1.5 segundo1
+                        ledController.ligarLed(3, 1000);
                         break;
                     case "App4":
-                        ledController.ligarLed(4, 1000); // Liga LED 4 por 1 segundo
+                        ledController.ligarLed(4, 1000);
                         break;
                     case "lista":
-                        // Não controlar LED ao clicar na lista
                         break;
                     default:
                         Log.e("MainActivity", "Ação desconhecida para controle de LED: " + action);
@@ -347,16 +361,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onAnimationEnd(Animator animation) {
                 new Handler().postDelayed(() -> {
+                    String appFolder = null;
                     if (action.equals("App1")) {
-                        openWebApp("App1");
+                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT1, "App1");
                     } else if (action.equals("App2")) {
-                        openWebApp("App2");
+                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT2, "App2");
                     } else if (action.equals("App3")) {
-                        openWebApp("App3");
+                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT3, "App3");
                     } else if (action.equals("App4")) {
-                        openWebApp("App4");
+                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT4, "App4");
                     } else if (action.equals("lista")) {
                         openGameList();
+                    }
+
+                    if (appFolder != null) {
+                        openWebApp(appFolder);
                     }
                     isAnimationRunning.set(false);
                 }, TRANSITION_DELAY_MS);
@@ -392,4 +411,12 @@ public class MainActivity extends AppCompatActivity {
         }
         return super.dispatchKeyEvent(event);
     }
+
+    private void updateButtonCovers() {
+        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT1, "App1"), bt1);
+        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT2, "App2"), bt2);
+        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT3, "App3"), bt3);
+        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT4, "App4"), bt4);
+    }
 }
+

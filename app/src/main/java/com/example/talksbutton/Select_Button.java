@@ -8,17 +8,19 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.example.talksbutton.AppButtonPreferenceManager;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class Select_Button extends AppCompatActivity {
 
     private String appFolderToApply;
     private ImageView bt1Dialog, bt2Dialog, bt3Dialog, bt4Dialog;
+    private Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_select_button);
+        context = this;
 
         // Recupera o caminho da pasta do aplicativo passado pela GameListActivity
         appFolderToApply = getIntent().getStringExtra("app_folder");
@@ -61,10 +63,19 @@ public class Select_Button extends AppCompatActivity {
     }
 
     private void applyAppToButton(String buttonKey) {
-        // Salva a associação do aplicativo ao botão виртуальный
-        AppButtonPreferenceManager.saveAppForButton(this, buttonKey, appFolderToApply);
-        Toast.makeText(this, appFolderToApply + " aplicado ao " + getButtonName(buttonKey), Toast.LENGTH_SHORT).show();
-        finish(); // Retorna para a MainActivity
+        // Salva a associação do aplicativo ao botão usando a classe de utilitários
+        AppButtonPreferenceManager.saveAppForButton(context, buttonKey, appFolderToApply);
+        Toast.makeText(context, appFolderToApply + " aplicado ao " + getButtonName(buttonKey), Toast.LENGTH_SHORT).show();
+
+        // Envia um broadcast para a MainActivity para notificar a atualização
+        Intent intent = new Intent("APP_BUTTON_MAPPING_CHANGED");
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+
+        // Inicia a MainActivity e limpa a pilha de atividades
+        Intent mainIntent = new Intent(context, MainActivity.class);
+        mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(mainIntent);
+        finish(); // Finaliza a Select_Button
     }
 
     private String getButtonName(String key) {
