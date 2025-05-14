@@ -21,8 +21,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
-
+import android.widget.Toast; // Importação do Toast
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -135,8 +134,10 @@ public class GameListActivity extends AppCompatActivity {
                     }
                 });
 
+                final String appToApply = currentApp.folderName;
                 holder.applyButton.setOnClickListener(v -> {
                     Intent intent = new Intent(getContext(), Select_Button.class);
+                    intent.putExtra("app_folder", appToApply); // Passa o nome da pasta do aplicativo
                     getContext().startActivity(intent);
                 });
 
