@@ -135,10 +135,9 @@ public class GameListActivity extends AppCompatActivity {
                     }
                 });
 
-                final String appToApply = currentApp.folderName;
                 holder.applyButton.setOnClickListener(v -> {
-                    Toast.makeText(getContext(), "Aplicar " + appToApply + " à tela inicial", Toast.LENGTH_SHORT).show();
-                    // Implementar lógica para aplicar à tela inicial aqui (usar appToApply)
+                    Intent intent = new Intent(getContext(), Select_Button.class);
+                    getContext().startActivity(intent);
                 });
 
                 if (position == selectedPosition) {
