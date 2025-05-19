@@ -7,15 +7,16 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.DocumentsContract;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +35,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import android.content.pm.ActivityInfo;
+import android.content.ContentResolver;
 
 class ViewHolder {
     ImageView coverImageView;
@@ -193,21 +194,9 @@ public class GameListActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Uri uri = result.getData().getData();
-                        if (uri != null) {
-                            String path = getRealPathFromUri(uri);
-                            if (path != null) {
-                                File selectedDirectory = new File(path);
-                                if (selectedDirectory.exists() && selectedDirectory.isDirectory()) {
-                                    handleImportedDirectory(selectedDirectory);
-                                } else {
-                                    Toast.makeText(this, "Diretório inválido selecionado.", Toast.LENGTH_SHORT).show();
-                                    Log.e(TAG, "Diretório selecionado não existe ou não é um diretório: " + selectedDirectory.getAbsolutePath());
-                                }
-                            } else {
-                                Toast.makeText(this, "Caminho do arquivo nulo.", Toast.LENGTH_SHORT).show();
-                                Log.e(TAG, "Caminho do arquivo retornado é nulo.");
-                            }
+                        Uri treeUri = result.getData().getData();
+                        if (treeUri != null) {
+                            handleImportedDirectory(treeUri);
                         } else {
                             Toast.makeText(this, "Erro ao selecionar o diretório.", Toast.LENGTH_SHORT).show();
                             Log.e(TAG, "URI do diretório selecionado é nula.");
@@ -227,7 +216,6 @@ public class GameListActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             int readImagesPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES);
             int readVideoPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO);
-            // READ_AUDIO is not needed here, but kept for completeness in case you want to handle audio files later
             int readAudioPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO);
 
             if (readImagesPermissionCheck != PackageManager.PERMISSION_GRANTED ||
@@ -264,7 +252,7 @@ public class GameListActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         Log.d(TAG, "onRequestPermissionsResult chamado com requestCode: " + requestCode);
         if (requestCode == REQUEST_STORAGE_PERMISSION) {
-            if (grantResults.length > 0) {
+            if (grantResults.length > 0 && grantResults.length == permissions.length) {
                 boolean allGranted = true;
                 for (int result : grantResults) {
                     if (result != PackageManager.PERMISSION_GRANTED) {
@@ -277,10 +265,11 @@ public class GameListActivity extends AppCompatActivity {
                     openDirectoryPicker();
                 } else {
                     Log.w(TAG, "Pelo menos uma permissão negada.");
-                    Toast.makeText(this, "Permissão negada.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Permissão negada. O aplicativo precisa desta permissão para importar novos conteúdos.", Toast.LENGTH_LONG).show();
+                    // Opcional: Mostrar um diálogo explicando a necessidade da permissão e oferecer para tentar novamente
                 }
             } else {
-                Log.d(TAG, "grantResults está vazio.");
+                Log.d(TAG, "grantResults está vazio ou o tamanho não corresponde.");
                 Toast.makeText(this, "Permissão negada.", Toast.LENGTH_SHORT).show();
             }
         }
@@ -289,13 +278,11 @@ public class GameListActivity extends AppCompatActivity {
     private void openDirectoryPicker() {
         Log.d(TAG, "openDirectoryPicker chamado");
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        // Intent.ACTION_OPEN_DOCUMENT_TREE é usado para selecionar um diretório.
         directoryPickerLauncher.launch(intent);
     }
 
-    private void handleImportedDirectory(File selectedDirectory) {
-        Log.d(TAG, "handleImportedDirectory chamado com diretório: " + selectedDirectory.getAbsolutePath());
-        AssetManager assetManager = getAssets();
+    private void handleImportedDirectory(Uri sourceTreeUri) {
+        Log.d(TAG, "handleImportedDirectory chamado com URI: " + sourceTreeUri);
         File assetsDir = new File(getFilesDir().getParentFile(), "assets/" + ASSET_APPS_FOLDER);
         if (!assetsDir.exists()) {
             assetsDir.mkdirs();
@@ -303,7 +290,7 @@ public class GameListActivity extends AppCompatActivity {
         }
 
         try {
-            String nextAppFolderName = getNextAvailableAppFolder(assetManager);
+            String nextAppFolderName = getNextAvailableAppFolder(getAssets());
             File newAppFolder = new File(assetsDir, nextAppFolderName);
             if (!newAppFolder.exists()) {
                 newAppFolder.mkdirs();
@@ -312,19 +299,17 @@ public class GameListActivity extends AppCompatActivity {
                 Log.d(TAG, "Diretório do novo aplicativo já existe: " + newAppFolder.getAbsolutePath());
             }
 
-            // Copia o conteúdo do diretório selecionado para o diretório de destino
-            copyDirectory(selectedDirectory, newAppFolder);
-
-            final String successMessage = "Aplicativo importado para " + nextAppFolderName;
+            boolean success = copyDirectoryFromUri(sourceTreeUri, newAppFolder);
+            final String message = success ? "Aplicativo importado para " + nextAppFolderName : "Falha ao importar diretório.";
             mainHandler.post(() -> {
-                Toast.makeText(GameListActivity.this, successMessage, Toast.LENGTH_SHORT).show();
+                Toast.makeText(GameListActivity.this, message, Toast.LENGTH_SHORT).show();
                 appsList.clear();
                 loadAppsWithCoversFromAssets();
                 adapter.notifyDataSetChanged();
             });
 
         } catch (IOException e) {
-            final String errorMessage = "Erro ao importar diretório: " + e.getMessage();
+            final String errorMessage = "Erro ao criar diretório de destino: " + e.getMessage();
             Log.e(TAG, errorMessage);
             mainHandler.post(() -> {
                 Toast.makeText(GameListActivity.this, "Erro ao importar diretório.", Toast.LENGTH_SHORT).show();
@@ -332,40 +317,65 @@ public class GameListActivity extends AppCompatActivity {
         }
     }
 
-
-
-    private void copyDirectory(File sourceDir, File destDir) throws IOException {
-        if (!destDir.exists()) {
-            if (!destDir.mkdirs()) {
-                throw new IOException("Não foi possível criar o diretório de destino: " + destDir.getAbsolutePath());
-            }
-        }
-        File[] files = sourceDir.listFiles();
-        if (files == null) {
-            Log.e(TAG, "Erro ao listar arquivos do diretório de origem ou diretório de origem é nulo: " + sourceDir.getAbsolutePath());
-            return;
-        }
-        for (File file : files) {
-            File destFile = new File(destDir, file.getName());
-            if (file.isDirectory()) {
-                copyDirectory(file, destFile);
-            } else {
-                copyFile(file, destFile);
-            }
-        }
+    private boolean copyDirectoryFromUri(Uri sourceTreeUri, File destDir) throws IOException {
+        ContentResolver resolver = getContentResolver();
+        Uri rootDocUri = DocumentsContract.buildDocumentUriUsingTree(sourceTreeUri, DocumentsContract.getTreeDocumentId(sourceTreeUri));
+        return copyChildren(resolver, rootDocUri, destDir);
     }
 
-    private void copyFile(File sourceFile, File destFile) throws IOException {
-        try (InputStream in = new FileInputStream(sourceFile);
+    private boolean copyChildren(ContentResolver resolver, Uri parentDocUri, File destDir) throws IOException {
+        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(parentDocUri, DocumentsContract.getDocumentId(parentDocUri));
+        boolean success = true;
+        try (Cursor cursor = resolver.query(childrenUri,
+                new String[]{
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                        DocumentsContract.Document.COLUMN_MIME_TYPE
+                },
+                null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    String documentId = cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
+                    String displayName = cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
+                    String mimeType = cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE));
+                    Uri childDocUri = DocumentsContract.buildDocumentUriUsingTree(parentDocUri, documentId);
+                    File destFile = new File(destDir, displayName);
+
+                    if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
+                        if (!destFile.exists() && !destFile.mkdirs()) {
+                            Log.e(TAG, "Falha ao criar subdiretório: " + destFile.getAbsolutePath());
+                            success = false;
+                        }
+                        if (!copyChildren(resolver, childDocUri, destFile)) {
+                            success = false;
+                        }
+                    } else {
+                        if (!copyFileFromUri(resolver, childDocUri, destFile)) {
+                            success = false;
+                        }
+                    }
+                } while (cursor.moveToNext());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao listar ou copiar arquivos: " + e.getMessage());
+            success = false;
+        }
+        return success;
+    }
+
+    private boolean copyFileFromUri(ContentResolver resolver, Uri sourceUri, File destFile) {
+        try (InputStream in = resolver.openInputStream(sourceUri);
              OutputStream out = new FileOutputStream(destFile)) {
+            if (in == null) return false;
             byte[] buffer = new byte[4096];
             int length;
             while ((length = in.read(buffer)) > 0) {
                 out.write(buffer, 0, length);
             }
+            return true;
         } catch (IOException e) {
-            Log.e(TAG, "Erro ao copiar o arquivo: " + sourceFile.getAbsolutePath() + " para " + destFile.getAbsolutePath() + ": " + e.getMessage());
-            throw e;
+            Log.e(TAG, "Erro ao copiar arquivo de URI " + sourceUri + " para " + destFile.getAbsolutePath() + ": " + e.getMessage());
+            return false;
         }
     }
 
@@ -517,26 +527,4 @@ public class GameListActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
     }
-
-    private String getRealPathFromUri(Uri uri) {
-        Log.d(TAG, "getRealPathFromUri chamado com URI: " + uri.toString());
-        String path = null;
-        if ("content".equals(uri.getScheme())) {
-            try (android.database.Cursor cursor = getContentResolver().query(uri, new String[]{android.provider.MediaStore.Images.Media.DATA}, null, null, null)) {
-                if (cursor != null && cursor.moveToFirst()) {
-                    int columnIndex = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Images.Media.DATA);
-                    path = cursor.getString(columnIndex);
-                    Log.d(TAG, "Caminho do arquivo obtido do ContentResolver: " + path);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Erro ao obter o caminho do arquivo a partir da URI: ", e);
-            }
-        }
-        if (path == null) {
-            path = uri.getPath();
-            Log.d(TAG, "Caminho do arquivo obtido diretamente da URI: " + path);
-        }
-        return path;
-    }
 }
-
