@@ -11,7 +11,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,7 +25,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast; // Importação do Toast
+import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -29,8 +33,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,8 +42,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import android.content.pm.ActivityInfo;
 
 class ViewHolder {
     ImageView coverImageView;
@@ -52,8 +55,9 @@ class ViewHolder {
 public class GameListActivity extends AppCompatActivity {
 
     private static final String ASSET_APPS_FOLDER = "aplicacoes";
-    private static final String[] FIXED_APP_FOLDERS = {"App1", "App2", "App3", "App4"}; // Correção: "App" maiúsculo
+    private static final String[] FIXED_APP_FOLDERS = {"App1", "App2", "App3", "App4"};
     private static final int REQUEST_STORAGE_PERMISSION = 101;
+    private static final String TAG = "GameListActivity";
 
     private ListView listViewGames;
     private List<AppData> appsList;
@@ -61,6 +65,8 @@ public class GameListActivity extends AppCompatActivity {
     private AppListAdapter adapter;
     private Button backToMainButton;
     private Button importButton;
+    private ActivityResultLauncher<Intent> directoryPickerLauncher;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private final BroadcastReceiver bluetoothDataReceiver = new BroadcastReceiver() {
         @Override
@@ -71,8 +77,6 @@ public class GameListActivity extends AppCompatActivity {
             }
         }
     };
-
-    private ActivityResultLauncher<Intent> filePickerLauncher;
 
     private static class AppData {
         String folderName;
@@ -120,14 +124,11 @@ public class GameListActivity extends AppCompatActivity {
                 }
 
                 final String appToOpen = currentApp.folderName;
-                holder.openButton.setOnClickListener(v -> {
-                    openWebApp(appToOpen);
-                });
+                holder.openButton.setOnClickListener(v -> openWebApp(appToOpen));
 
                 final String appToDelete = currentApp.folderName;
                 holder.deleteButton.setOnClickListener(v -> {
                     if (!isFixedApp(appToDelete)) {
-                        // Implementar lógica de exclusão aqui (usar appToDelete)
                         Toast.makeText(getContext(), "Excluir " + appToDelete, Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(getContext(), "Este aplicativo não pode ser excluído", Toast.LENGTH_SHORT).show();
@@ -137,17 +138,16 @@ public class GameListActivity extends AppCompatActivity {
                 final String appToApply = currentApp.folderName;
                 holder.applyButton.setOnClickListener(v -> {
                     Intent intent = new Intent(getContext(), Select_Button.class);
-                    intent.putExtra("app_folder", appToApply); // Passa o nome da pasta do aplicativo
+                    intent.putExtra("app_folder", appToApply);
                     getContext().startActivity(intent);
                 });
 
                 if (position == selectedPosition) {
-                    convertView.setBackgroundColor(0x1A808080); // Cinza com baixa opacidade
+                    convertView.setBackgroundColor(0x1A808080);
                 } else {
                     convertView.setBackgroundColor(Color.TRANSPARENT);
                 }
             }
-
             return convertView;
         }
 
@@ -166,6 +166,11 @@ public class GameListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game_list);
 
+        // Define a orientação da tela como paisagem
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+        Log.d(TAG, "onCreate chamado");
+
         backToMainButton = findViewById(R.id.btn_back_to_main);
         backToMainButton.setOnClickListener(v -> {
             Intent intent = new Intent(GameListActivity.this, MainActivity.class);
@@ -174,137 +179,227 @@ public class GameListActivity extends AppCompatActivity {
         });
 
         importButton = findViewById(R.id.btn_import);
-        importButton.setOnClickListener(v -> checkStoragePermissionAndImport());
+        importButton.setOnClickListener(v -> checkMediaPermissionAndImport());
 
         listViewGames = findViewById(R.id.list_view_games);
         appsList = new ArrayList<>();
-
         loadAppsWithCoversFromAssets();
-
         adapter = new AppListAdapter(this, appsList);
         listViewGames.setAdapter(adapter);
-
         updateSelection();
 
-        filePickerLauncher = registerForActivityResult(
+        // Inicializa o ActivityResultLauncher para seleção de diretório
+        directoryPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri uri = result.getData().getData();
                         if (uri != null) {
-                            importZipFile(uri);
+                            String path = getRealPathFromUri(uri);
+                            if (path != null) {
+                                File selectedDirectory = new File(path);
+                                if (selectedDirectory.exists() && selectedDirectory.isDirectory()) {
+                                    handleImportedDirectory(selectedDirectory);
+                                } else {
+                                    Toast.makeText(this, "Diretório inválido selecionado.", Toast.LENGTH_SHORT).show();
+                                    Log.e(TAG, "Diretório selecionado não existe ou não é um diretório: " + selectedDirectory.getAbsolutePath());
+                                }
+                            } else {
+                                Toast.makeText(this, "Caminho do arquivo nulo.", Toast.LENGTH_SHORT).show();
+                                Log.e(TAG, "Caminho do arquivo retornado é nulo.");
+                            }
                         } else {
-                            Toast.makeText(this, "Erro ao selecionar o arquivo.", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Erro ao selecionar o diretório.", Toast.LENGTH_SHORT).show();
+                            Log.e(TAG, "URI do diretório selecionado é nula.");
                         }
+                    } else if (result.getResultCode() == RESULT_CANCELED) {
+                        Log.d(TAG, "Seleção de diretório cancelada pelo usuário.");
+                        Toast.makeText(this, "Seleção de diretório cancelada.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Erro ao selecionar o diretório.", Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "Erro desconhecido ao selecionar diretório. Result Code: " + result.getResultCode());
                     }
                 });
     }
 
-    private void checkStoragePermissionAndImport() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                == PackageManager.PERMISSION_GRANTED) {
-            openFilePicker();
+    private void checkMediaPermissionAndImport() {
+        Log.d(TAG, "checkMediaPermissionAndImport chamado");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            int readImagesPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES);
+            int readVideoPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO);
+            // READ_AUDIO is not needed here, but kept for completeness in case you want to handle audio files later
+            int readAudioPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO);
+
+            if (readImagesPermissionCheck != PackageManager.PERMISSION_GRANTED ||
+                    readVideoPermissionCheck != PackageManager.PERMISSION_GRANTED ||
+                    readAudioPermissionCheck != PackageManager.PERMISSION_GRANTED) {
+
+                Log.d(TAG, "Permissões de mídia não concedidas. Solicitando...");
+                List<String> permissionsToRequest = new ArrayList<>();
+                if (readImagesPermissionCheck != PackageManager.PERMISSION_GRANTED)
+                    permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES);
+                if (readVideoPermissionCheck != PackageManager.PERMISSION_GRANTED)
+                    permissionsToRequest.add(Manifest.permission.READ_MEDIA_VIDEO);
+                if (readAudioPermissionCheck != PackageManager.PERMISSION_GRANTED)
+                    permissionsToRequest.add(Manifest.permission.READ_MEDIA_AUDIO);
+
+                ActivityCompat.requestPermissions(this, permissionsToRequest.toArray(new String[0]), REQUEST_STORAGE_PERMISSION);
+            } else {
+                Log.d(TAG, "Permissões de mídia já concedidas.");
+                openDirectoryPicker();
+            }
         } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                    REQUEST_STORAGE_PERMISSION);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Permissão de armazenamento já concedida.");
+                openDirectoryPicker();
+            } else {
+                Log.d(TAG, "Permissão de armazenamento não concedida. Solicitando...");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
+            }
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Log.d(TAG, "onRequestPermissionsResult chamado com requestCode: " + requestCode);
         if (requestCode == REQUEST_STORAGE_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openFilePicker();
+            if (grantResults.length > 0) {
+                boolean allGranted = true;
+                for (int result : grantResults) {
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        allGranted = false;
+                        break;
+                    }
+                }
+                if (allGranted) {
+                    Log.i(TAG, "Todas as permissões concedidas.");
+                    openDirectoryPicker();
+                } else {
+                    Log.w(TAG, "Pelo menos uma permissão negada.");
+                    Toast.makeText(this, "Permissão negada.", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(this, "Permissão de armazenamento negada.", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "grantResults está vazio.");
+                Toast.makeText(this, "Permissão negada.", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    private void openFilePicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("application/zip");
-        filePickerLauncher.launch(intent);
+    private void openDirectoryPicker() {
+        Log.d(TAG, "openDirectoryPicker chamado");
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        // Intent.ACTION_OPEN_DOCUMENT_TREE é usado para selecionar um diretório.
+        directoryPickerLauncher.launch(intent);
     }
 
-    private void importZipFile(Uri zipUri) {
+    private void handleImportedDirectory(File selectedDirectory) {
+        Log.d(TAG, "handleImportedDirectory chamado com diretório: " + selectedDirectory.getAbsolutePath());
         AssetManager assetManager = getAssets();
         File assetsDir = new File(getFilesDir().getParentFile(), "assets/" + ASSET_APPS_FOLDER);
         if (!assetsDir.exists()) {
             assetsDir.mkdirs();
+            Log.d(TAG, "Diretório de assets criado: " + assetsDir.getAbsolutePath());
         }
 
-        try (InputStream inputStream = getContentResolver().openInputStream(zipUri);
-             ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
-
+        try {
             String nextAppFolderName = getNextAvailableAppFolder(assetManager);
             File newAppFolder = new File(assetsDir, nextAppFolderName);
             if (!newAppFolder.exists()) {
                 newAppFolder.mkdirs();
+                Log.d(TAG, "Diretório do novo aplicativo criado: " + newAppFolder.getAbsolutePath());
+            } else {
+                Log.d(TAG, "Diretório do novo aplicativo já existe: " + newAppFolder.getAbsolutePath());
             }
 
-            ZipEntry zipEntry;
-            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                String entryName = zipEntry.getName();
-                File outputFile = new File(newAppFolder, entryName);
+            // Copia o conteúdo do diretório selecionado para o diretório de destino
+            copyDirectory(selectedDirectory, newAppFolder);
 
-                if (zipEntry.isDirectory()) {
-                    outputFile.mkdirs();
-                } else {
-                    try (OutputStream outputStream = new FileOutputStream(outputFile)) {
-                        byte[] buffer = new byte[4096];
-                        int bytesRead;
-                        while ((bytesRead = zipInputStream.read(buffer)) != -1) {
-                            outputStream.write(buffer, 0, bytesRead);
-                        }
-                    }
-                }
-                zipInputStream.closeEntry();
-            }
-            Toast.makeText(this, "Aplicativo importado para " + nextAppFolderName, Toast.LENGTH_SHORT).show();
-            // Recarregar a lista de aplicativos após a importação
-            appsList.clear();
-            loadAppsWithCoversFromAssets();
-            adapter.notifyDataSetChanged();
+            final String successMessage = "Aplicativo importado para " + nextAppFolderName;
+            mainHandler.post(() -> {
+                Toast.makeText(GameListActivity.this, successMessage, Toast.LENGTH_SHORT).show();
+                appsList.clear();
+                loadAppsWithCoversFromAssets();
+                adapter.notifyDataSetChanged();
+            });
 
         } catch (IOException e) {
-            Log.e("GameListActivity", "Erro ao importar arquivo zip: " + e.getMessage());
-            Toast.makeText(this, "Erro ao importar arquivo zip.", Toast.LENGTH_SHORT).show();
+            final String errorMessage = "Erro ao importar diretório: " + e.getMessage();
+            Log.e(TAG, errorMessage);
+            mainHandler.post(() -> {
+                Toast.makeText(GameListActivity.this, "Erro ao importar diretório.", Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
+
+
+    private void copyDirectory(File sourceDir, File destDir) throws IOException {
+        if (!destDir.exists()) {
+            if (!destDir.mkdirs()) {
+                throw new IOException("Não foi possível criar o diretório de destino: " + destDir.getAbsolutePath());
+            }
+        }
+        File[] files = sourceDir.listFiles();
+        if (files == null) {
+            Log.e(TAG, "Erro ao listar arquivos do diretório de origem ou diretório de origem é nulo: " + sourceDir.getAbsolutePath());
+            return;
+        }
+        for (File file : files) {
+            File destFile = new File(destDir, file.getName());
+            if (file.isDirectory()) {
+                copyDirectory(file, destFile);
+            } else {
+                copyFile(file, destFile);
+            }
+        }
+    }
+
+    private void copyFile(File sourceFile, File destFile) throws IOException {
+        try (InputStream in = new FileInputStream(sourceFile);
+             OutputStream out = new FileOutputStream(destFile)) {
+            byte[] buffer = new byte[4096];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Erro ao copiar o arquivo: " + sourceFile.getAbsolutePath() + " para " + destFile.getAbsolutePath() + ": " + e.getMessage());
+            throw e;
         }
     }
 
     private String getNextAvailableAppFolder(AssetManager assetManager) {
         int appNumber = 5;
         while (true) {
-            String folderName = "App" + appNumber; // Correção: "App" maiúsculo
+            String folderName = "App" + appNumber;
             try {
                 String[] files = assetManager.list(ASSET_APPS_FOLDER + "/" + folderName);
                 if (files == null) {
+                    Log.d(TAG, "Pasta disponível encontrada: " + folderName);
                     return folderName;
                 }
                 appNumber++;
             } catch (IOException e) {
-                // A pasta não existe, então podemos usá-la
+                Log.d(TAG, "Pasta disponível encontrada (IOException): " + folderName);
                 return folderName;
             }
         }
     }
 
     private void loadAppsWithCoversFromAssets() {
+        Log.d(TAG, "loadAppsWithCoversFromAssets chamado");
         AssetManager assetManager = getAssets();
         try {
             String[] appFolders = assetManager.list(ASSET_APPS_FOLDER);
             if (appFolders != null) {
-                appsList.clear(); // Limpar a lista antes de recarregar
+                appsList.clear();
                 for (String folder : appFolders) {
                     try {
                         InputStream coverInputStream = null;
                         Bitmap coverBitmap = null;
-                        String displayName = folder; // Nome da pasta como padrão
+                        String displayName = folder;
 
-                        // Tentar ler o arquivo de configuração para obter o displayName (titulo)
                         InputStream configInputStream = null;
                         try {
                             configInputStream = assetManager.open(ASSET_APPS_FOLDER + "/" + folder + "/info.txt");
@@ -318,7 +413,7 @@ public class GameListActivity extends AppCompatActivity {
                                 }
                             }
                         } catch (IOException e) {
-                            Log.w("GameListActivity", "Arquivo info.txt não encontrado para: " + folder + ". Usando nome da pasta.");
+                            Log.w(TAG, "Arquivo info.txt não encontrado para: " + folder + ". Usando nome da pasta.");
                         } finally {
                             if (configInputStream != null) {
                                 configInputStream.close();
@@ -329,7 +424,7 @@ public class GameListActivity extends AppCompatActivity {
                             coverInputStream = assetManager.open(ASSET_APPS_FOLDER + "/" + folder + "/capa.jpg");
                             coverBitmap = BitmapFactory.decodeStream(coverInputStream);
                         } catch (IOException e) {
-                            Log.w("GameListActivity", "Capa não encontrada para: " + folder);
+                            Log.w(TAG, "Capa não encontrada para: " + folder);
                         } finally {
                             if (coverInputStream != null) {
                                 coverInputStream.close();
@@ -339,18 +434,20 @@ public class GameListActivity extends AppCompatActivity {
                         String[] files = assetManager.list(ASSET_APPS_FOLDER + "/" + folder);
                         if (files != null && files.length > 0) {
                             appsList.add(new AppData(folder, displayName, coverBitmap));
+                            Log.d(TAG, "Aplicativo adicionado à lista: " + folder);
                         }
                     } catch (IOException e) {
-                        // Se não for um diretório, a listagem falhará, podemos ignorar
+                        Log.w(TAG, "Erro ao processar pasta: " + folder + ". Não é um diretório?", e);
                     }
                 }
             }
         } catch (IOException e) {
-            Log.e("GameListActivity", "Erro ao listar assets", e);
+            Log.e(TAG, "Erro ao listar assets", e);
         }
     }
 
     private void openWebApp(String appName) {
+        Log.d(TAG, "openWebApp chamado com appName: " + appName);
         Intent intent = new Intent(GameListActivity.this, WebAppActivity.class);
         intent.putExtra("app_name", appName);
         startActivity(intent);
@@ -358,6 +455,7 @@ public class GameListActivity extends AppCompatActivity {
 
     private void handleBluetoothData(String data) {
         runOnUiThread(() -> {
+            Log.d(TAG, "handleBluetoothData chamado com data: " + data);
             switch (data.trim()) {
                 case "B1":
                     selectNextApp();
@@ -370,25 +468,32 @@ public class GameListActivity extends AppCompatActivity {
                     break;
                 case "B5":
                     finish();
+                    break;
+                default:
+                    Log.d(TAG, "Comando Bluetooth desconhecido: " + data);
             }
         });
     }
 
     private void selectNextApp() {
+        Log.d(TAG, "selectNextApp chamado");
         selectedPosition = (selectedPosition + 1) % appsList.size();
         updateSelection();
     }
 
     private void selectPreviousApp() {
+        Log.d(TAG, "selectPreviousApp chamado");
         selectedPosition = (selectedPosition - 1 + appsList.size()) % appsList.size();
         updateSelection();
     }
 
     private void openSelectedApp() {
+        Log.d(TAG, "openSelectedApp chamado");
         openWebApp(appsList.get(selectedPosition).folderName);
     }
 
     private void updateSelection() {
+        Log.d(TAG, "updateSelection chamado");
         adapter.notifyDataSetChanged();
         listViewGames.setSelection(selectedPosition);
     }
@@ -396,6 +501,7 @@ public class GameListActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d(TAG, "onStart chamado");
         IntentFilter dataFilter = new IntentFilter("bluetooth_data_received");
         LocalBroadcastManager.getInstance(this).registerReceiver(bluetoothDataReceiver, dataFilter);
     }
@@ -403,6 +509,34 @@ public class GameListActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        Log.d(TAG, "onStop chamado");
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothDataReceiver);
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
+    private String getRealPathFromUri(Uri uri) {
+        Log.d(TAG, "getRealPathFromUri chamado com URI: " + uri.toString());
+        String path = null;
+        if ("content".equals(uri.getScheme())) {
+            try (android.database.Cursor cursor = getContentResolver().query(uri, new String[]{android.provider.MediaStore.Images.Media.DATA}, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int columnIndex = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Images.Media.DATA);
+                    path = cursor.getString(columnIndex);
+                    Log.d(TAG, "Caminho do arquivo obtido do ContentResolver: " + path);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao obter o caminho do arquivo a partir da URI: ", e);
+            }
+        }
+        if (path == null) {
+            path = uri.getPath();
+            Log.d(TAG, "Caminho do arquivo obtido diretamente da URI: " + path);
+        }
+        return path;
+    }
 }
+
