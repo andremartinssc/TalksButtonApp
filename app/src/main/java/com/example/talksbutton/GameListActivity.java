@@ -284,37 +284,43 @@ public class GameListActivity extends AppCompatActivity {
     private void handleImportedDirectory(Uri sourceTreeUri) {
         Log.d(TAG, "handleImportedDirectory chamado com URI: " + sourceTreeUri);
         File assetsDir = new File(getFilesDir().getParentFile(), "assets/" + ASSET_APPS_FOLDER);
-        if (!assetsDir.exists()) {
-            assetsDir.mkdirs();
-            Log.d(TAG, "Diretório de assets criado: " + assetsDir.getAbsolutePath());
-        }
+        File destinationAppFolder = new File(assetsDir, "App6"); // Diretório de destino fixo
 
-        try {
-            String nextAppFolderName = getNextAvailableAppFolder(getAssets());
-            File newAppFolder = new File(assetsDir, nextAppFolderName);
-            if (!newAppFolder.exists()) {
-                newAppFolder.mkdirs();
-                Log.d(TAG, "Diretório do novo aplicativo criado: " + newAppFolder.getAbsolutePath());
+        Log.d(TAG, "Diretório de assets de destino (interno): " + assetsDir.getAbsolutePath());
+        Log.d(TAG, "Diretório de destino fixo para importação: " + destinationAppFolder.getAbsolutePath());
+
+        if (!destinationAppFolder.exists()) {
+            Log.d(TAG, "Diretório de destino fixo não existe, criando...");
+            if (destinationAppFolder.mkdirs()) {
+                Log.d(TAG, "Diretório de destino fixo criado com sucesso: " + destinationAppFolder.getAbsolutePath());
             } else {
-                Log.d(TAG, "Diretório do novo aplicativo já existe: " + newAppFolder.getAbsolutePath());
+                Log.e(TAG, "Falha ao criar diretório de destino fixo: " + destinationAppFolder.getAbsolutePath());
+                mainHandler.post(() -> Toast.makeText(GameListActivity.this, "Erro ao criar diretório de destino.", Toast.LENGTH_SHORT).show());
+                return;
             }
-
-            boolean success = copyDirectoryFromUri(sourceTreeUri, newAppFolder);
-            final String message = success ? "Aplicativo importado para " + nextAppFolderName : "Falha ao importar diretório.";
-            mainHandler.post(() -> {
-                Toast.makeText(GameListActivity.this, message, Toast.LENGTH_SHORT).show();
-                appsList.clear();
-                loadAppsWithCoversFromAssets();
-                adapter.notifyDataSetChanged();
-            });
-
-        } catch (IOException e) {
-            final String errorMessage = "Erro ao criar diretório de destino: " + e.getMessage();
-            Log.e(TAG, errorMessage);
-            mainHandler.post(() -> {
-                Toast.makeText(GameListActivity.this, "Erro ao importar diretório.", Toast.LENGTH_SHORT).show();
-            });
         }
+
+        Log.d(TAG, "Iniciando a cópia do diretório da URI: " + sourceTreeUri + " para: " + destinationAppFolder.getAbsolutePath());
+        boolean success = false;
+        try {
+            success = copyDirectoryFromUri(sourceTreeUri, destinationAppFolder);
+            Log.d(TAG, "copyDirectoryFromUri concluído com sucesso: " + success);
+        } catch (IOException e) {
+            Log.e(TAG, "Erro durante a cópia do diretório: " + e.getMessage());
+            final String errorMessage = "Erro ao importar diretório: " + e.getMessage();
+            mainHandler.post(() -> Toast.makeText(GameListActivity.this, errorMessage, Toast.LENGTH_SHORT).show());
+            return;
+        }
+
+        final String message = success ? "Conteúdo importado para App6" : "Falha ao importar diretório.";
+        Log.d(TAG, "Resultado da cópia: " + success + ", Mensagem: " + message);
+        mainHandler.post(() -> {
+            Toast.makeText(GameListActivity.this, message, Toast.LENGTH_SHORT).show();
+            appsList.clear();
+            loadAppsWithCoversFromAssets();
+            adapter.notifyDataSetChanged();
+            });
+
     }
 
     private boolean copyDirectoryFromUri(Uri sourceTreeUri, File destDir) throws IOException {
