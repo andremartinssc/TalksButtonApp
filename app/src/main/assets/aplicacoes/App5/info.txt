@@ -1,3 +1,3 @@
-titulo: aplicativo base
-Descricao: base para criacoes
-Autor: 
+titulo: Bate Marmota
+Descricao: Jogo Bate Marmota
+Autor: Lucas Silva

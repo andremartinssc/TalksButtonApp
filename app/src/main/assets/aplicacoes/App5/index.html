@@ -2,158 +2,32 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de LEDs Simples (Base com Animação Unificada)</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-
-        .container {
-            display: flex;
-            gap: 20px;
-        }
-
-        .container > div {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
-            font-size: 1.2em;
-            transition: transform 0.1s ease-in-out; /* Adiciona transição suave */
-            outline: none; /* Opcional: remove a borda de foco padrão */
-        }
-
-        .container > div:active,
-        .container > div.active { /* Estilo para o estado ativo */
-            transform: scale(0.95);
-        }
-
-        .container1 { background-color: green; }
-        .container2 { background-color: yellow; color: black; }
-        .container3 { background-color: blue; }
-        .container4 { background-color: red; }
-    </style>
-    <script>
-        let ledAtivo = null; // Armazena o número do LED atualmente aceso
-        let ledTimeout;     // Variável para controlar o timeout do LED
-
-        function desligarLed(ledNumero) {
-            window.location.href = `talksbutton://led/${ledNumero}/0`;
-            console.log(`LED ${ledNumero} desligado`);
-            ledAtivo = null;
-        }
-
-        function acionarLed(ledNumero, duracao) {
-            // Limpa qualquer timeout anterior para o LED
-            clearTimeout(ledTimeout);
-
-            // Desliga o LED atualmente aceso, se houver um diferente
-            if (ledAtivo !== null && ledAtivo !== ledNumero) {
-                desligarLed(ledAtivo);
-            }
-
-            // Aciona o novo LED
-            window.location.href = `talksbutton://led/${ledNumero}/${duracao}`;
-            console.log(`LED ${ledNumero} acionado por ${duracao}ms`);
-            ledAtivo = ledNumero; // Atualiza o LED atualmente aceso
-
-            // Adiciona a classe 'active' para a animação
-            const buttonElement = document.getElementById(`button${ledNumero}`);
-            if (buttonElement) {
-                buttonElement.classList.add('active');
-                setTimeout(() => {
-                    buttonElement.classList.remove('active');
-                }, 100); // Remove a classe após um pequeno delay
-            }
-        }
-
-        function handleButtonClick(event) {
-            const buttonId = event.target.id;
-            let ledNumero;
-
-            switch (buttonId) {
-                case 'button1':
-                    ledNumero = 1;
-                    break;
-                case 'button2':
-                    ledNumero = 2;
-                    break;
-                case 'button3':
-                    ledNumero = 3;
-                    break;
-                case 'button4':
-                    ledNumero = 4;
-                    break;
-                default:
-                    return;
-            }
-            acionarLed(ledNumero, 2000); // Aciona o LED por 2 segundos
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const buttons = document.querySelectorAll('.container > div');
-            buttons.forEach(button => {
-                button.addEventListener('click', handleButtonClick);
-                button.setAttribute('tabindex', '0'); // Tornar os divs focáveis para eventos de teclado
-            });
-
-            document.addEventListener('keydown', (event) => {
-                let ledNumero;
-                switch (event.key) {
-                    case '1':
-                        ledNumero = 1;
-                        break;
-                    case '2':
-                    case '0':
-                        ledNumero = 2;
-                        break;
-                    case '3':
-                    case 'x':
-                        ledNumero = 3;
-                        break;
-                    case '4':
-                    case 'm':
-                        ledNumero = 4;
-                        break;
-                    default:
-                        return;
-                }
-                acionarLed(ledNumero, 2000);
-
-                // Adiciona a classe 'active' para a animação no pressionamento de tecla
-                const buttonElement = document.getElementById(`button${ledNumero}`);
-                if (buttonElement) {
-                    buttonElement.classList.add('active');
-                    setTimeout(() => {
-                        buttonElement.classList.remove('active');
-                    }, 100); // Remove a classe após um pequeno delay
-                }
-            });
-        });
-    </script>
+    <title>Jogo da Marmota</title>
+    <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-<h1>Controle de LEDs Simples</h1>
-<div class="container">
-    <div class="container1" id="button1">1</div>
-    <div class="container2" id="button2">2</div>
-    <div class="container3" id="button3">3</div>
-    <div class="container4" id="button4">4</div>
+<h1>Jogo da Marmota</h1>
+<div class="pontuacao-tempo">
+    <p><img src="img/relogio.png" alt="Relógio"> Tempo restante: <span id="tempo">30</span>s</p>
+    <button onclick="iniciarJogo()">Iniciar</button>
 </div>
-<p>Clique nos botões ou pressione as teclas correspondentes via Bluetooth (se configurado) para acender os LEDs e ver a mesma animação.</p>
+
+<!-- Pontuação na lateral -->
+<div class="pontuacao">
+    <p>Pontuação: <span id="pontuacao">0</span></p>
+</div>
+
+<div class="tabuleiro">
+    <div class="posicao" id="posicao1"></div>
+    <div class="posicao" id="posicao2"></div>
+    <div class="posicao" id="posicao3"></div>
+    <div class="posicao" id="posicao4"></div>
+
+    <div class="gato-central">
+        <img src="img/gatinhogif.gif" alt="Gato" />
+    </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
