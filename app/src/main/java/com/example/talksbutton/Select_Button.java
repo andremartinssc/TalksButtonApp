@@ -13,6 +13,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 public class Select_Button extends AppCompatActivity {
 
     private String appFolderToApply;
+    private boolean isAppImported; // Novo campo para saber se o app é importado
     private ImageView bt1Dialog, bt2Dialog, bt3Dialog, bt4Dialog;
     private Context context;
 
@@ -22,8 +23,10 @@ public class Select_Button extends AppCompatActivity {
         setContentView(R.layout.activity_select_button);
         context = this;
 
-        // Recupera o caminho da pasta do aplicativo passado pela GameListActivity
+        // Recupera o caminho da pasta do aplicativo e seu status de importado
         appFolderToApply = getIntent().getStringExtra("app_folder");
+        isAppImported = getIntent().getBooleanExtra("is_app_imported", false); // Default para false
+
         if (appFolderToApply == null) {
             finish(); // Se não houver app para aplicar, fecha a tela
             return;
@@ -63,8 +66,10 @@ public class Select_Button extends AppCompatActivity {
     }
 
     private void applyAppToButton(String buttonKey) {
-        // Salva a associação do aplicativo ao botão usando a classe de utilitários
-        AppButtonPreferenceManager.saveAppForButton(context, buttonKey, appFolderToApply);
+        String appPathType = isAppImported ? "internal" : "asset";
+
+        // Salva a associação do aplicativo ao botão, incluindo o tipo de caminho
+        AppButtonPreferenceManager.saveAppForButton(context, buttonKey, appFolderToApply, appPathType);
         Toast.makeText(context, appFolderToApply + " aplicado ao " + getButtonName(buttonKey), Toast.LENGTH_SHORT).show();
 
         // Envia um broadcast para a MainActivity para notificar a atualização

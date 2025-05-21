@@ -1,5 +1,6 @@
 package com.example.talksbutton;
 
+import java.io.File;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -31,8 +32,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
-import com.example.talksbutton.AppButtonPreferenceManager; // Importa o AppButtonPreferenceManager
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -150,11 +149,11 @@ public class MainActivity extends AppCompatActivity {
         // Inicializa as capas dos botões com os aplicativos salvos
         updateButtonCovers();
 
-        bt1.setOnClickListener(v -> handleButtonClick(v, "App1"));
-        bt2.setOnClickListener(v -> handleButtonClick(v, "App2"));
-        bt3.setOnClickListener(v -> handleButtonClick(v, "App3"));
-        bt4.setOnClickListener(v -> handleButtonClick(v, "App4"));
-        btLista.setOnClickListener(v -> handleButtonClick(v, "lista"));
+        bt1.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT1));
+        bt2.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT2));
+        bt3.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT3));
+        bt4.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT4));
+        btLista.setOnClickListener(v -> handleButtonClick(v, "lista")); // Mantém "lista" como uma ação especial
 
         if (!hasBluetoothPermissions()) {
             requestPermissions();
@@ -163,25 +162,41 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void loadCapaImage(String appFolder, ImageView imageView) {
-        AssetManager am = getAssets();
-        InputStream is = null;
-        try {
-            String imagePath = "aplicacoes/" + appFolder + "/" + CAPA_FILE_NAME;
-            is = am.open(imagePath);
-            Bitmap bitmap = BitmapFactory.decodeStream(is);
-            imageView.setImageBitmap(bitmap);
-        } catch (IOException e) {
-            Log.w("MainActivity", "Imagem de capa não encontrada para " + appFolder + ": " + e.getMessage());
-            imageView.setImageResource(android.R.drawable.ic_menu_gallery);
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+    private void loadCapaImage(String appFolderName, String appPathType, ImageView imageView) {
+        Bitmap bitmap = null;
+        if ("internal".equals(appPathType)) {
+            // Caminho para capa em armazenamento interno
+            File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
+            File coverFile = new File(appDir, CAPA_FILE_NAME);
+            if (coverFile.exists()) {
+                bitmap = BitmapFactory.decodeFile(coverFile.getAbsolutePath());
+            } else {
+                Log.w("MainActivity", "Capa não encontrada em armazenamento interno para " + appFolderName);
+            }
+        } else { // Assume "asset"
+            AssetManager am = getAssets();
+            InputStream is = null;
+            try {
+                String imagePath = "aplicacoes/" + appFolderName + "/" + CAPA_FILE_NAME;
+                is = am.open(imagePath);
+                bitmap = BitmapFactory.decodeStream(is);
+            } catch (IOException e) {
+                Log.w("MainActivity", "Imagem de capa não encontrada em assets para " + appFolderName + ": " + e.getMessage());
+            } finally {
+                if (is != null) {
+                    try {
+                        is.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
+        }
+
+        if (bitmap != null) {
+            imageView.setImageBitmap(bitmap);
+        } else {
+            imageView.setImageResource(android.R.drawable.ic_menu_gallery); // Imagem padrão
         }
     }
 
@@ -195,12 +210,7 @@ public class MainActivity extends AppCompatActivity {
         if (mBound && mService != null && !isConnected) {
             Log.i("MainActivity", "Tentando conectar ao dispositivo Talks Button...");
             mService.connect();
-            isConnected = mService.isConnected();
-            if (!isConnected) {
-                startReconnectTimer();
-            } else {
-                stopReconnectTimer();
-            }
+            // isConnected é atualizado pelo bluetoothConnectionReceiver
         }
     }
 
@@ -230,9 +240,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void openWebApp(String appName) {
+    private void openWebApp(String appFolderName, String appPathType) {
         Intent intent = new Intent(MainActivity.this, WebAppActivity.class);
-        intent.putExtra("app_name", appName);
+        intent.putExtra("app_folder_name", appFolderName);
+        intent.putExtra("app_path_type", appPathType);
         startActivityForResult(intent, 100);
     }
 
@@ -272,6 +283,7 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(bluetoothConnectionReceiver, connectionFilter);
         // Registra o receiver para atualizações de botões
         LocalBroadcastManager.getInstance(this).registerReceiver(appButtonChangedReceiver, new IntentFilter("APP_BUTTON_MAPPING_CHANGED"));
+        updateButtonCovers(); // Garante que as capas estejam atualizadas ao retornar
     }
 
     @Override
@@ -301,35 +313,49 @@ public class MainActivity extends AppCompatActivity {
         reconnectHandler.removeCallbacks(reconnectRunnable);
     }
 
-    private void handleButtonClick(View view, String action) {
+    private void handleButtonClick(View view, String buttonPrefKey) { // Agora recebe a chave de preferência
         if (isAnimationRunning.compareAndSet(false, true)) {
-            animateButtonClickAndOpen(view, action);
+            // Se for o botão "Lista", não há app associado, abre diretamente a GameListActivity
+            if ("lista".equals(buttonPrefKey)) {
+                animateButtonClickAndOpen(view, "lista", null, null); // Nenhum app associado
+                return;
+            }
+
+            // Para os botões App1 a App4, busca o app e o tipo
+            String appFolderName = AppButtonPreferenceManager.getAppForButton(context, buttonPrefKey, getDefaultAppName(buttonPrefKey));
+            String appPathType = AppButtonPreferenceManager.getAppButtonType(context, buttonPrefKey + "_type", "asset"); // Padrão é "asset"
+
+            animateButtonClickAndOpen(view, null, appFolderName, appPathType); // Passa o nome da pasta e o tipo
+
             // Controle do LED agora é feito aqui usando LedController
             if (ledController != null) {
-                switch (action) {
-                    case "App1":
-                        ledController.ligarLed(1, 1000);
-                        break;
-                    case "App2":
-                        ledController.ligarLed(2, 1000);
-                        break;
-                    case "App3":
-                        ledController.ligarLed(3, 1000);
-                        break;
-                    case "App4":
-                        ledController.ligarLed(4, 1000);
-                        break;
-                    case "lista":
-                        break;
-                    default:
-                        Log.e("MainActivity", "Ação desconhecida para controle de LED: " + action);
-                        break;
+                int ledNumber = 0;
+                if (AppButtonPreferenceManager.KEY_APP_BT1.equals(buttonPrefKey)) ledNumber = 1;
+                else if (AppButtonPreferenceManager.KEY_APP_BT2.equals(buttonPrefKey)) ledNumber = 2;
+                else if (AppButtonPreferenceManager.KEY_APP_BT3.equals(buttonPrefKey)) ledNumber = 3;
+                else if (AppButtonPreferenceManager.KEY_APP_BT4.equals(buttonPrefKey)) ledNumber = 4;
+
+                if (ledNumber > 0) {
+                    ledController.ligarLed(ledNumber, 1000); // Liga o LED por 1 segundo
+                } else {
+                    Log.e("MainActivity", "Ação desconhecida para controle de LED: " + buttonPrefKey);
                 }
             }
         }
     }
 
-    private void animateButtonClickAndOpen(View view, String action) {
+    // Helper para obter o nome do app padrão para cada botão (se nada estiver salvo)
+    private String getDefaultAppName(String buttonPrefKey) {
+        switch (buttonPrefKey) {
+            case AppButtonPreferenceManager.KEY_APP_BT1: return "App1";
+            case AppButtonPreferenceManager.KEY_APP_BT2: return "App2";
+            case AppButtonPreferenceManager.KEY_APP_BT3: return "App3";
+            case AppButtonPreferenceManager.KEY_APP_BT4: return "App4";
+            default: return "";
+        }
+    }
+
+    private void animateButtonClickAndOpen(View view, String actionType, String appFolderName, String appPathType) {
         AnimatorSet animatorSet = new AnimatorSet();
 
         ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(view, "scaleX", 1f, 0.8f);
@@ -361,21 +387,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onAnimationEnd(Animator animation) {
                 new Handler().postDelayed(() -> {
-                    String appFolder = null;
-                    if (action.equals("App1")) {
-                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT1, "App1");
-                    } else if (action.equals("App2")) {
-                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT2, "App2");
-                    } else if (action.equals("App3")) {
-                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT3, "App3");
-                    } else if (action.equals("App4")) {
-                        appFolder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT4, "App4");
-                    } else if (action.equals("lista")) {
+                    if ("lista".equals(actionType)) {
                         openGameList();
-                    }
-
-                    if (appFolder != null) {
-                        openWebApp(appFolder);
+                    } else if (appFolderName != null && appPathType != null) {
+                        openWebApp(appFolderName, appPathType);
                     }
                     isAnimationRunning.set(false);
                 }, TRANSITION_DELAY_MS);
@@ -402,7 +417,7 @@ public class MainActivity extends AppCompatActivity {
                 case KeyEvent.KEYCODE_4:
                     bt4.performClick();
                     return true;
-                case KeyEvent.KEYCODE_5:
+                case KeyEvent.KEYCODE_5: // Botão físico 5 para a lista
                     btLista.performClick();
                     return true;
                 default:
@@ -413,10 +428,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateButtonCovers() {
-        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT1, "App1"), bt1);
-        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT2, "App2"), bt2);
-        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT3, "App3"), bt3);
-        loadCapaImage(AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT4, "App4"), bt4);
+        // Para cada botão, pega o nome da pasta do app e o tipo (asset/internal)
+        String app1Folder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT1, "App1");
+        String app1Type = AppButtonPreferenceManager.getAppButtonType(context, AppButtonPreferenceManager.KEY_APP_BT1_TYPE, "asset");
+        loadCapaImage(app1Folder, app1Type, bt1);
+
+        String app2Folder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT2, "App2");
+        String app2Type = AppButtonPreferenceManager.getAppButtonType(context, AppButtonPreferenceManager.KEY_APP_BT2_TYPE, "asset");
+        loadCapaImage(app2Folder, app2Type, bt2);
+
+        String app3Folder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT3, "App3");
+        String app3Type = AppButtonPreferenceManager.getAppButtonType(context, AppButtonPreferenceManager.KEY_APP_BT3_TYPE, "asset");
+        loadCapaImage(app3Folder, app3Type, bt3);
+
+        String app4Folder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT4, "App4");
+        String app4Type = AppButtonPreferenceManager.getAppButtonType(context, AppButtonPreferenceManager.KEY_APP_BT4_TYPE, "asset");
+        loadCapaImage(app4Folder, app4Type, bt4);
     }
 }
-
