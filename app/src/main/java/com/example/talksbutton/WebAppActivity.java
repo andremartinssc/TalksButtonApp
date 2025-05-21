@@ -17,9 +17,12 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageButton;
+import android.widget.Toast; // Adicione esta importação para usar Toast
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import java.io.File;
 
 public class WebAppActivity extends AppCompatActivity {
 
@@ -28,6 +31,7 @@ public class WebAppActivity extends AppCompatActivity {
     private boolean mBound = false;
     private ImageButton btnVoltar;
     private AudioManager audioManager;
+    private LedController ledController;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -36,12 +40,15 @@ public class WebAppActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
             Log.d("WebAppActivity", "Serviço Bluetooth conectado.");
+            // Inicializa LedController após a conexão com o serviço
+            ledController = new LedController(mService, mBound);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
             mService = null;
+            ledController = null; // Limpa a referência ao LedController
             Log.d("WebAppActivity", "Serviço Bluetooth desconectado.");
         }
     };
@@ -62,6 +69,10 @@ public class WebAppActivity extends AppCompatActivity {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
                 boolean isConnected = intent.getBooleanExtra("is_connected", false);
                 Log.d("WebAppActivity", "Bluetooth conectado: " + isConnected);
+                // Garante que LedController seja inicializado após a conexão
+                if (isConnected && mBound && mService != null && ledController == null) {
+                    ledController = new LedController(mService, mBound);
+                }
             }
         }
     };
@@ -74,10 +85,13 @@ public class WebAppActivity extends AppCompatActivity {
         webView = findViewById(R.id.webView);
         btnVoltar = findViewById(R.id.btnVoltar);
 
-        String appName = getIntent().getStringExtra("app_name");
+        // Recebe o nome da pasta do aplicativo e o tipo de caminho (asset ou internal)
+        String appFolderName = getIntent().getStringExtra("app_folder_name");
+        String appPathType = getIntent().getStringExtra("app_path_type");
+
 
         configurarWebView();
-        carregarAplicativo(appName);
+        carregarAplicativo(appFolderName, appPathType); // Passa ambos os parâmetros
 
         Intent serviceIntent = new Intent(this, BluetoothService.class);
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
@@ -130,37 +144,75 @@ public class WebAppActivity extends AppCompatActivity {
         webSettings.setTextZoom(100);
         webView.setScrollBarStyle(WebView.SCROLLBARS_INSIDE_OVERLAY);
 
+        // --- Importante: Adicione estas duas linhas para permitir acesso a arquivos locais ---
+        webSettings.setAllowFileAccess(true);
+        webSettings.setAllowContentAccess(true);
+        // --- Fim da adição ---
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url.equals("app://sair")) {
+                if (url.startsWith("app://sair")) {
                     finish();
                     return true;
+                } else if (url.startsWith("talksbutton://led/")) {
+                    // Intercepta comandos de LED simplificados
+                    processarComandoLedSimplificado(url);
+                    return true; // Indica que o Android lidou com a URL
                 }
                 view.loadUrl(url);
                 return true;
+            }
+
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                super.onReceivedError(view, errorCode, description, failingUrl);
+                Log.e("WebAppActivity", "Erro no carregamento do WebView: " + description + " URL: " + failingUrl);
+                Toast.makeText(WebAppActivity.this, "Erro ao carregar o aplicativo: " + description, Toast.LENGTH_LONG).show();
             }
         });
 
         webView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                // Impede rolagem por toque para evitar comportamento indesejado em apps que não devem rolar
                 return (event.getAction() == MotionEvent.ACTION_MOVE);
             }
         });
     }
 
-    private void carregarAplicativo(String appName) {
-        if (appName != null) {
+    // Modificado para receber o nome da pasta e o tipo de caminho
+    private void carregarAplicativo(String appFolderName, String appPathType) {
+        if (appFolderName != null) {
             try {
-                String url = "file:///android_asset/aplicacoes/" + appName + "/index.html";
+                String url;
+                if ("internal".equals(appPathType)) {
+                    // Construir a URL para o arquivo no armazenamento interno
+                    // Usa GameListActivity.IMPORTED_APPS_FOLDER para garantir que o caminho esteja correto
+                    File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
+                    File indexFile = new File(appDir, "index.html");
+
+                    if (indexFile.exists()) { // Verifica se o index.html realmente existe
+                        url = "file://" + indexFile.getAbsolutePath();
+                        Log.d("WebAppActivity", "Carregando aplicativo do armazenamento interno: " + url);
+                    } else {
+                        Log.e("WebAppActivity", "index.html não encontrado no caminho interno: " + indexFile.getAbsolutePath());
+                        Toast.makeText(this, "Erro: index.html não encontrado no app importado '" + appFolderName + "'.", Toast.LENGTH_LONG).show();
+                        // Opcional: Voltar para a tela anterior ou mostrar uma mensagem de erro mais elaborada
+                        return; // Sai do método se o arquivo não existe
+                    }
+                } else { // Assume "asset" se não for "internal" ou se appPathType for nulo
+                    url = "file:///android_asset/aplicacoes/" + appFolderName + "/index.html";
+                    Log.d("WebAppActivity", "Carregando aplicativo dos assets: " + url);
+                }
                 webView.loadUrl(url);
-                Log.d("WebAppActivity", "Carregando aplicativo: " + url);
             } catch (Exception e) {
-                Log.e("WebAppActivity", "Erro ao carregar aplicativo", e);
+                Log.e("WebAppActivity", "Erro ao carregar aplicativo: " + appFolderName, e);
+                Toast.makeText(this, "Erro ao carregar o aplicativo: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         } else {
-            Log.w("WebAppActivity", "Aplicativo não encontrado");
+            Log.w("WebAppActivity", "Nome do aplicativo não encontrado.");
+            Toast.makeText(this, "Nome do aplicativo não especificado.", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -183,12 +235,34 @@ public class WebAppActivity extends AppCompatActivity {
                 onBackPressed();
                 return;
             case "INATIVIDADE":
-                finish();
+                finish(); // Ou alguma outra ação de inatividade
                 return;
         }
         if (!js.isEmpty()) {
             webView.evaluateJavascript(js, null);
             Log.d("WebAppActivity", "Executando JavaScript: " + js);
+        }
+    }
+
+    private void processarComandoLedSimplificado(String url) {
+        try {
+            String comandoCru = url.replace("talksbutton://led/", "");
+            String[] partes = comandoCru.split("/");
+
+            if (partes.length == 2) {
+                int numeroLed = Integer.parseInt(partes[0]);
+                long duracao = Long.parseLong(partes[1]);
+
+                if (ledController != null) {
+                    ledController.ligarLed(numeroLed, duracao);
+                } else {
+                    Log.w("WebAppActivity", "LedController não inicializado ou serviço Bluetooth não conectado.");
+                }
+            } else {
+                Log.w("WebAppActivity", "Formato de comando de LED simplificado inválido: " + url + ". Use: talksbutton://led/NUMERO_LED/DURACAO_MS");
+            }
+        } catch (NumberFormatException e) {
+            Log.e("WebAppActivity", "Erro ao analisar comando de LED simplificado: " + url, e);
         }
     }
 
@@ -212,9 +286,11 @@ public class WebAppActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         stopAllPlayback();
-        webView.loadUrl("about:blank");
-        webView.clearHistory();
-        webView.destroy();
+        if (webView != null) {
+            webView.loadUrl("about:blank"); // Limpa o WebView
+            webView.clearHistory();
+            webView.destroy(); // Libera recursos do WebView
+        }
         if (mBound) {
             unbindService(serviceConnection);
             mBound = false;
@@ -223,9 +299,11 @@ public class WebAppActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        // Permite que o WebView volte na sua própria história de navegação
         if (webView.canGoBack()) {
             webView.goBack();
         } else {
+            // Se o WebView não puder voltar, chama a função padrão de voltar da Activity
             super.onBackPressed();
         }
     }
@@ -233,14 +311,17 @@ public class WebAppActivity extends AppCompatActivity {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         int keyCode = event.getKeyCode();
+        // Intercepta a tecla KEYCODE_5 (se for o botão de sair do seu controle)
         if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_5) {
-            onBackPressed();
-            return true;
+            onBackPressed(); // Chama o método de voltar
+            return true; // Indica que o evento foi consumido
         }
-        return super.dispatchKeyEvent(event);
+        return super.dispatchKeyEvent(event); // Deixa o sistema lidar com outras teclas
     }
 
     private void stopAllPlayback() {
+        // Abandona o foco de áudio para parar qualquer reprodução de mídia do WebView.
+        // Isso é uma boa prática para garantir que o áudio pare ao sair da Activity.
         audioManager.requestAudioFocus(
                 null,
                 AudioManager.STREAM_MUSIC,

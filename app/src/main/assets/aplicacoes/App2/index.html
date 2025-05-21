@@ -77,6 +77,8 @@
                if (button) {
                    highlightButton(button);
                    playSound(num);
+                   // Acionar LED correspondente por um curto período
+                   window.location.href = `talksbutton://led/${num}/200`;
                }
            }
 
@@ -94,8 +96,17 @@
                sounds.start.currentTime = 0;
                sounds.start.play();
                let delay = 200;
+               const buttons = document.querySelectorAll('.container > div'); // Garante que pegamos a lista atual de botões
+
                buttons.forEach((button, index) => {
-                   setTimeout(() => highlightButton(button), delay * (index + 1));
+                   const buttonNum = parseInt(button.id.replace('button', ''));
+                   if (!isNaN(buttonNum)) {
+                       setTimeout(() => {
+                           highlightButton(button);
+                           // Acionar LED correspondente por um curto período
+                           window.location.href = `talksbutton://led/${buttonNum}/150`; // Ajustei a duração para um pouco menos que o destaque
+                       }, delay * (index + 1));
+                   }
                });
                setTimeout(() => callback(), delay * buttons.length + 500);
            }
@@ -151,6 +162,8 @@
 
            function processPlayerInput(num) {
                playerSequence.push(num);
+               playButton(num); // Aciona o botão e o LED ao clicar
+
                if (!checkPlayerSequence()) {
                    playErrorAnimation();
                    messageDisplay.textContent = 'Você errou! Reiniciando jogo...';
@@ -159,8 +172,6 @@
                    setTimeout(() => startGame(), 3000);
                    return;
                }
-
-               playButton(num);
 
                if (playerSequence.length === sequence.length) {
                    score++;
@@ -200,21 +211,21 @@
     </script>
 </head>
 <body>
-    <div class="container_placar">
-        <div id="score">Pontuação Atual: 0</div>
-        <div id="high-score">Pontuação Máxima: 0</div>
-        <div id="message"></div>
-    </div>
+<div class="container_placar">
+    <div id="score">Pontuação Atual: 0</div>
+    <div id="high-score">Pontuação Máxima: 0</div>
+    <div id="message"></div>
+</div>
 
-    <div class="container">
-        <div class="container1" id="button1"></div>
-        <div class="container2" id="button2"></div>
-        <div class="container3" id="button3"></div>
-        <div class="container4" id="button4"></div>
-    </div>
+<div class="container">
+    <div class="container1" id="button1"></div>
+    <div class="container2" id="button2"></div>
+    <div class="container3" id="button3"></div>
+    <div class="container4" id="button4"></div>
+</div>
 
-    <div class="container0">
-        <img src="img/gatinhogif.gif" alt="">
-    </div>
+<div class="container0">
+    <img src="img/gatinhogif.gif" alt="">
+</div>
 </body>
 </html>
