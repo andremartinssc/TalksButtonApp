@@ -58,7 +58,10 @@ public class MainActivity extends AppCompatActivity {
     private LedController ledController; // Instância do LedController
     private Context context;
 
-    private static final String CAPA_FILE_NAME = "capa.jpg";
+    // Use o nome do arquivo com a capitalização correta para o arquivo importado
+    private static final String CAPA_FILE_NAME_ASSET = "capa.jpg";
+    private static final String CAPA_FILE_NAME_IMPORTED = "capa.JPG"; // Note o .JPG maiúsculo
+
     private final BroadcastReceiver appButtonChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -165,21 +168,37 @@ public class MainActivity extends AppCompatActivity {
     private void loadCapaImage(String appFolderName, String appPathType, ImageView imageView) {
         Bitmap bitmap = null;
         if ("internal".equals(appPathType)) {
-            // Caminho para capa em armazenamento interno
+            // Caminho para capa em armazenamento interno (usando CAPA_FILE_NAME_IMPORTED)
             File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
-            File coverFile = new File(appDir, CAPA_FILE_NAME);
+            File coverFile = new File(appDir, CAPA_FILE_NAME_IMPORTED); // <<< AQUI A MUDANÇA
             if (coverFile.exists()) {
-                bitmap = BitmapFactory.decodeFile(coverFile.getAbsolutePath());
+                try {
+                    bitmap = BitmapFactory.decodeFile(coverFile.getAbsolutePath());
+                    if (bitmap == null) {
+                        Log.e("MainActivity", "BitmapFactory retornou null para capa importada: " + coverFile.getAbsolutePath() + ". O arquivo pode estar corrompido ou não é uma imagem válida.");
+                    } else {
+                        Log.d("MainActivity", "Capa importada carregada com sucesso: " + coverFile.getAbsolutePath());
+                    }
+                } catch (OutOfMemoryError oome) {
+                    Log.e("MainActivity", "OutOfMemoryError ao carregar capa importada para " + appFolderName + ": " + oome.getMessage() + ". Tente reduzir o tamanho da imagem.");
+                } catch (Exception e) {
+                    Log.e("MainActivity", "Erro inesperado ao carregar capa importada para " + appFolderName + ": " + e.getMessage(), e);
+                }
             } else {
-                Log.w("MainActivity", "Capa não encontrada em armazenamento interno para " + appFolderName);
+                Log.w("MainActivity", "Capa não encontrada em armazenamento interno para " + appFolderName + " no caminho: " + coverFile.getAbsolutePath());
             }
         } else { // Assume "asset"
             AssetManager am = getAssets();
             InputStream is = null;
             try {
-                String imagePath = "aplicacoes/" + appFolderName + "/" + CAPA_FILE_NAME;
+                String imagePath = "aplicacoes/" + appFolderName + "/" + CAPA_FILE_NAME_ASSET; // Usando CAPA_FILE_NAME_ASSET
                 is = am.open(imagePath);
                 bitmap = BitmapFactory.decodeStream(is);
+                if (bitmap == null) {
+                    Log.e("MainActivity", "BitmapFactory retornou null para capa de asset: " + imagePath + ". O arquivo pode estar corrompido ou não é uma imagem válida.");
+                } else {
+                    Log.d("MainActivity", "Capa de asset carregada com sucesso: " + imagePath);
+                }
             } catch (IOException e) {
                 Log.w("MainActivity", "Imagem de capa não encontrada em assets para " + appFolderName + ": " + e.getMessage());
             } finally {
@@ -210,7 +229,6 @@ public class MainActivity extends AppCompatActivity {
         if (mBound && mService != null && !isConnected) {
             Log.i("MainActivity", "Tentando conectar ao dispositivo Talks Button...");
             mService.connect();
-            // isConnected é atualizado pelo bluetoothConnectionReceiver
         }
     }
 
@@ -281,9 +299,8 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(bluetoothDataReceiver, dataFilter);
         IntentFilter connectionFilter = new IntentFilter("bluetooth_connection_state");
         LocalBroadcastManager.getInstance(this).registerReceiver(bluetoothConnectionReceiver, connectionFilter);
-        // Registra o receiver para atualizações de botões
         LocalBroadcastManager.getInstance(this).registerReceiver(appButtonChangedReceiver, new IntentFilter("APP_BUTTON_MAPPING_CHANGED"));
-        updateButtonCovers(); // Garante que as capas estejam atualizadas ao retornar
+        updateButtonCovers();
     }
 
     @Override
@@ -291,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothDataReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothConnectionReceiver);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(appButtonChangedReceiver); // Unregister
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(appButtonChangedReceiver);
         stopReconnectTimer();
     }
 
@@ -313,21 +330,18 @@ public class MainActivity extends AppCompatActivity {
         reconnectHandler.removeCallbacks(reconnectRunnable);
     }
 
-    private void handleButtonClick(View view, String buttonPrefKey) { // Agora recebe a chave de preferência
+    private void handleButtonClick(View view, String buttonPrefKey) {
         if (isAnimationRunning.compareAndSet(false, true)) {
-            // Se for o botão "Lista", não há app associado, abre diretamente a GameListActivity
             if ("lista".equals(buttonPrefKey)) {
-                animateButtonClickAndOpen(view, "lista", null, null); // Nenhum app associado
+                animateButtonClickAndOpen(view, "lista", null, null);
                 return;
             }
 
-            // Para os botões App1 a App4, busca o app e o tipo
             String appFolderName = AppButtonPreferenceManager.getAppForButton(context, buttonPrefKey, getDefaultAppName(buttonPrefKey));
-            String appPathType = AppButtonPreferenceManager.getAppButtonType(context, buttonPrefKey + "_type", "asset"); // Padrão é "asset"
+            String appPathType = AppButtonPreferenceManager.getAppButtonType(context, buttonPrefKey + "_type", "asset");
 
-            animateButtonClickAndOpen(view, null, appFolderName, appPathType); // Passa o nome da pasta e o tipo
+            animateButtonClickAndOpen(view, null, appFolderName, appPathType);
 
-            // Controle do LED agora é feito aqui usando LedController
             if (ledController != null) {
                 int ledNumber = 0;
                 if (AppButtonPreferenceManager.KEY_APP_BT1.equals(buttonPrefKey)) ledNumber = 1;
@@ -336,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
                 else if (AppButtonPreferenceManager.KEY_APP_BT4.equals(buttonPrefKey)) ledNumber = 4;
 
                 if (ledNumber > 0) {
-                    ledController.ligarLed(ledNumber, 1000); // Liga o LED por 1 segundo
+                    ledController.ligarLed(ledNumber, 1000);
                 } else {
                     Log.e("MainActivity", "Ação desconhecida para controle de LED: " + buttonPrefKey);
                 }
@@ -344,7 +358,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Helper para obter o nome do app padrão para cada botão (se nada estiver salvo)
     private String getDefaultAppName(String buttonPrefKey) {
         switch (buttonPrefKey) {
             case AppButtonPreferenceManager.KEY_APP_BT1: return "App1";
@@ -428,7 +441,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateButtonCovers() {
-        // Para cada botão, pega o nome da pasta do app e o tipo (asset/internal)
         String app1Folder = AppButtonPreferenceManager.getAppForButton(context, AppButtonPreferenceManager.KEY_APP_BT1, "App1");
         String app1Type = AppButtonPreferenceManager.getAppButtonType(context, AppButtonPreferenceManager.KEY_APP_BT1_TYPE, "asset");
         loadCapaImage(app1Folder, app1Type, bt1);

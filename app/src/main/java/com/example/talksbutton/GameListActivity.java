@@ -584,7 +584,7 @@ public class GameListActivity extends AppCompatActivity {
                 if (folder.isDirectory()) {
                     // Verifica se a pasta contém pelo menos um index.html ou capa.jpg
                     File indexFile = new File(folder, "index.html");
-                    File coverFile = new File(folder, "capa.jpg");
+                    File coverFile = new File(folder, "capa.JPG");
 
                     if (!indexFile.exists() && !coverFile.exists()) {
                         Log.d(TAG, "Pulando pasta importada que não parece ser um app válido (sem index.html ou capa.jpg): " + folder.getName());
