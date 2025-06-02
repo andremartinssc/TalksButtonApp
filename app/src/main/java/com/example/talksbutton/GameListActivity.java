@@ -159,7 +159,7 @@ public class GameListActivity extends AppCompatActivity {
                 });
 
                 if (position == selectedPosition) {
-                    convertView.setBackgroundColor(0x1A808080); // Cor para item selecionado
+                    convertView.setBackgroundColor(0x33BBBBBB); // Cor para item selecionado
                 } else {
                     convertView.setBackgroundColor(Color.TRANSPARENT);
                 }
