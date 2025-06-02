@@ -40,8 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_BT_PERMISSIONS = 1;
-    private static final int RECONNECT_DELAY_MS = 5000;
-    private static final int MAX_RECONNECT_ATTEMPTS = 5;
+    // REMOVIDOS: RECONNECT_DELAY_MS, MAX_RECONNECT_ATTEMPTS (agora no serviço)
     private static final int ANIMATION_DURATION_SCALE_DOWN = 150;
     private static final int ANIMATION_DURATION_SCALE_UP = 300;
     private static final int ANIMATION_DURATION_ROTATE = 250;
@@ -51,16 +50,14 @@ public class MainActivity extends AppCompatActivity {
     private ImageView bt1, bt2, bt3, bt4, btLista;
     private BluetoothService mService;
     private boolean mBound = false;
-    private boolean isConnected = false;
-    private int reconnectAttemptCount = 0;
-    private Handler reconnectHandler = new Handler();
+    private boolean isConnected = false; // Mantida para o Toast e estado da UI
+    // REMOVIDOS: reconnectAttemptCount, reconnectHandler, reconnectRunnable (agora no serviço)
     private AtomicBoolean isAnimationRunning = new AtomicBoolean(false);
     private LedController ledController; // Instância do LedController
     private Context context;
 
-    // Use o nome do arquivo com a capitalização correta para o arquivo importado
     private static final String CAPA_FILE_NAME_ASSET = "capa.jpg";
-    private static final String CAPA_FILE_NAME_IMPORTED = "capa.JPG"; // Note o .JPG maiúsculo
+    private static final String CAPA_FILE_NAME_IMPORTED = "capa.JPG";
 
     private final BroadcastReceiver appButtonChangedReceiver = new BroadcastReceiver() {
         @Override
@@ -79,8 +76,15 @@ public class MainActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
             Log.d("MainActivity", "Serviço Bluetooth conectado.");
-            attemptBluetoothConnection();
-            ledController = new LedController(mService, mBound); // Inicializa o LedController
+            // REMOVIDO: attemptBluetoothConnection(); // O serviço agora se conecta sozinho
+            // Garante que o estado seja atualizado com base no serviço ao vincular
+            isConnected = mService.isConnected();
+            // Inicializa o LedController (agora que mService está disponível)
+            ledController = new LedController(mService, mBound);
+            // Mostra o Toast de conexão inicial, se já estiver conectado
+            if (isConnected) {
+                Toast.makeText(MainActivity.this, "Dispositivo Talks Button conectado", Toast.LENGTH_SHORT).show();
+            }
         }
 
         @Override
@@ -88,7 +92,9 @@ public class MainActivity extends AppCompatActivity {
             mBound = false;
             mService = null;
             ledController = null; // Limpa a referência ao LedController
+            isConnected = false; // Atualiza o estado
             Log.d("MainActivity", "Serviço Bluetooth desconectado.");
+            Toast.makeText(MainActivity.this, "Dispositivo Talks Button desconectado", Toast.LENGTH_SHORT).show(); // Notifica a desconexão
         }
     };
 
@@ -107,35 +113,18 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
                 boolean newConnectionState = intent.getBooleanExtra("is_connected", false);
-                if (newConnectionState != isConnected) {
+                if (newConnectionState != isConnected) { // Só mostra o Toast se o estado mudou
                     isConnected = newConnectionState;
                     String message = isConnected ? "Dispositivo Talks Button conectado" : "Dispositivo Talks Button desconectado";
                     Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-                    reconnectAttemptCount = 0;
-                    if (!isConnected && mBound && mService != null) {
-                        startReconnectTimer();
-                    } else {
-                        stopReconnectTimer();
-                    }
+                    // REMOVIDO: reconnectAttemptCount = 0; startReconnectTimer(); stopReconnectTimer();
+                    // Toda a lógica de reconexão agora é do serviço.
                 }
             }
         }
     };
 
-    private final Runnable reconnectRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (mBound && mService != null && !isConnected && reconnectAttemptCount < MAX_RECONNECT_ATTEMPTS) {
-                Log.i("MainActivity", "Tentando reconectar ao dispositivo Talks Button (Tentativa " + (reconnectAttemptCount + 1) + ")");
-                mService.connect();
-                reconnectAttemptCount++;
-                startReconnectTimer();
-            } else if (reconnectAttemptCount >= MAX_RECONNECT_ATTEMPTS) {
-                Log.w("MainActivity", "Número máximo de tentativas de reconexão atingido.");
-                Toast.makeText(MainActivity.this, "Falha ao conectar ao dispositivo Talks Button.", Toast.LENGTH_LONG).show();
-            }
-        }
-    };
+    // REMOVIDO: reconnectRunnable completo (agora no serviço)
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,14 +138,13 @@ public class MainActivity extends AppCompatActivity {
         bt4 = findViewById(R.id.bt_4);
         btLista = findViewById(R.id.bt_lista);
 
-        // Inicializa as capas dos botões com os aplicativos salvos
         updateButtonCovers();
 
         bt1.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT1));
         bt2.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT2));
         bt3.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT3));
         bt4.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT4));
-        btLista.setOnClickListener(v -> handleButtonClick(v, "lista")); // Mantém "lista" como uma ação especial
+        btLista.setOnClickListener(v -> handleButtonClick(v, "lista"));
 
         if (!hasBluetoothPermissions()) {
             requestPermissions();
@@ -168,9 +156,8 @@ public class MainActivity extends AppCompatActivity {
     private void loadCapaImage(String appFolderName, String appPathType, ImageView imageView) {
         Bitmap bitmap = null;
         if ("internal".equals(appPathType)) {
-            // Caminho para capa em armazenamento interno (usando CAPA_FILE_NAME_IMPORTED)
             File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
-            File coverFile = new File(appDir, CAPA_FILE_NAME_IMPORTED); // <<< AQUI A MUDANÇA
+            File coverFile = new File(appDir, CAPA_FILE_NAME_IMPORTED);
             if (coverFile.exists()) {
                 try {
                     bitmap = BitmapFactory.decodeFile(coverFile.getAbsolutePath());
@@ -191,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
             AssetManager am = getAssets();
             InputStream is = null;
             try {
-                String imagePath = "aplicacoes/" + appFolderName + "/" + CAPA_FILE_NAME_ASSET; // Usando CAPA_FILE_NAME_ASSET
+                String imagePath = "aplicacoes/" + appFolderName + "/" + CAPA_FILE_NAME_ASSET;
                 is = am.open(imagePath);
                 bitmap = BitmapFactory.decodeStream(is);
                 if (bitmap == null) {
@@ -215,22 +202,17 @@ public class MainActivity extends AppCompatActivity {
         if (bitmap != null) {
             imageView.setImageBitmap(bitmap);
         } else {
-            imageView.setImageResource(android.R.drawable.ic_menu_gallery); // Imagem padrão
+            imageView.setImageResource(android.R.drawable.ic_menu_gallery);
         }
     }
 
     private void startBluetoothService() {
         Intent serviceIntent = new Intent(this, BluetoothService.class);
-        startService(serviceIntent);
-        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+        startService(serviceIntent); // Inicia o serviço
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE); // Vincula-se ao serviço
     }
 
-    private void attemptBluetoothConnection() {
-        if (mBound && mService != null && !isConnected) {
-            Log.i("MainActivity", "Tentando conectar ao dispositivo Talks Button...");
-            mService.connect();
-        }
-    }
+    // REMOVIDO: attemptBluetoothConnection(); // O serviço agora lida com sua própria conexão inicial e reconexões
 
     private void handleBluetoothData(String data) {
         runOnUiThread(() -> {
@@ -275,21 +257,21 @@ public class MainActivity extends AppCompatActivity {
                 ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED;
     }
 
-    private void requestPermissions() {
-        ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_SCAN
-        }, REQUEST_BT_PERMISSIONS);
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_BT_PERMISSIONS && hasBluetoothPermissions()) {
             startBluetoothService();
         } else {
-            Toast.makeText(this, "Permissões Bluetooth necessárias.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Permissões Bluetooth necessárias para o funcionamento.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void requestPermissions() {
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_SCAN
+        }, REQUEST_BT_PERMISSIONS);
     }
 
     @Override
@@ -309,7 +291,7 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothDataReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothConnectionReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(appButtonChangedReceiver);
-        stopReconnectTimer();
+        // REMOVIDO: stopReconnectTimer(); // Gerenciado pelo serviço
     }
 
     @Override
@@ -319,16 +301,14 @@ public class MainActivity extends AppCompatActivity {
             unbindService(serviceConnection);
             mBound = false;
         }
-        stopReconnectTimer();
+        // REMOVIDO: stopReconnectTimer(); // Gerenciado pelo serviço
+        // O serviço é destruído quando a Activity é destruída se não houver outras Activities vinculadas,
+        // mas o serviço permanece vivo se for iniciado e não houver vínculos ou se explicitamente parado.
+        // Se você quer que o serviço pare completamente com a activity, chame stopService(new Intent(this, BluetoothService.class));
+        // Mas para reconexão em segundo plano, é melhor deixá-lo gerenciar seu próprio ciclo de vida.
     }
 
-    private void startReconnectTimer() {
-        reconnectHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS);
-    }
-
-    private void stopReconnectTimer() {
-        reconnectHandler.removeCallbacks(reconnectRunnable);
-    }
+    // REMOVIDO: startReconnectTimer() e stopReconnectTimer() (agora no serviço)
 
     private void handleButtonClick(View view, String buttonPrefKey) {
         if (isAnimationRunning.compareAndSet(false, true)) {
@@ -342,7 +322,8 @@ public class MainActivity extends AppCompatActivity {
 
             animateButtonClickAndOpen(view, null, appFolderName, appPathType);
 
-            if (ledController != null) {
+            // Ações do LED somente se o serviço estiver conectado e o LED Controller inicializado
+            if (ledController != null && mService != null && mService.isConnected()) {
                 int ledNumber = 0;
                 if (AppButtonPreferenceManager.KEY_APP_BT1.equals(buttonPrefKey)) ledNumber = 1;
                 else if (AppButtonPreferenceManager.KEY_APP_BT2.equals(buttonPrefKey)) ledNumber = 2;
@@ -354,6 +335,8 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Log.e("MainActivity", "Ação desconhecida para controle de LED: " + buttonPrefKey);
                 }
+            } else {
+                Log.w("MainActivity", "Não foi possível controlar o LED: serviço não vinculado ou não conectado.");
             }
         }
     }
