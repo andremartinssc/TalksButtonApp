@@ -159,7 +159,7 @@ public class GameListActivity extends AppCompatActivity {
                 });
 
                 if (position == selectedPosition) {
-                    convertView.setBackgroundColor(0x1A808080); // Cor para item selecionado
+                    convertView.setBackgroundColor(0x33BBBBBB); // Cor para item selecionado
                 } else {
                     convertView.setBackgroundColor(Color.TRANSPARENT);
                 }
@@ -706,6 +706,9 @@ public class GameListActivity extends AppCompatActivity {
                 case "B3":
                     openSelectedApp();
                     break;
+                case "B4": // Adicionado: Botão 4 para aplicar o app selecionado
+                    applySelectedApp();
+                    break;
                 case "B5":
                     finish();
                     break;
@@ -736,6 +739,20 @@ public class GameListActivity extends AppCompatActivity {
         if (!appsList.isEmpty()) {
             AppData selectedApp = appsList.get(selectedPosition);
             openWebApp(selectedApp.folderName, selectedApp.isImported);
+        }
+    }
+
+    // NOVO MÉTODO: Para aplicar o aplicativo selecionado
+    private void applySelectedApp() {
+        Log.d(TAG, "applySelectedApp chamado");
+        if (!appsList.isEmpty()) {
+            AppData selectedApp = appsList.get(selectedPosition);
+            Intent intent = new Intent(this, Select_Button.class);
+            intent.putExtra("app_folder", selectedApp.folderName);
+            intent.putExtra("is_app_imported", selectedApp.isImported);
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, "Nenhum aplicativo para aplicar.", Toast.LENGTH_SHORT).show();
         }
     }
 

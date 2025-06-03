@@ -43,7 +43,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/rounded_blue_border" />
+            android:background="@drawable/rounded_red_border" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -77,7 +77,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/rounded_yelow_border" />
+            android:background="@drawable/rounded_blue_border" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -111,7 +111,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/rounded_red_border" />
+            android:background="@drawable/rounded_green_border" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -145,7 +145,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/rounded_green_border" />
+            android:background="@drawable/rounded_yelow_border" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

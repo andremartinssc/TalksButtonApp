@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de LEDs Simples (Base com Animação Unificada)</title>
+    <title>Controle de LEDs  (Base com Animação Unificada)</title>
     <style>
         body {
             font-family: sans-serif;
@@ -43,9 +43,9 @@
         }
 
         .container1 { background-color: green; }
-        .container2 { background-color: yellow; color: black; }
-        .container3 { background-color: blue; }
-        .container4 { background-color: red; }
+        .container2 { background-color: red; color: black; }
+        .container3 { background-color: yellow; }
+        .container4 { background-color: blue; }
     </style>
     <script>
         let ledAtivo = null; // Armazena o número do LED atualmente aceso
@@ -147,13 +147,13 @@
     </script>
 </head>
 <body>
-<h1>Controle de LEDs Simples</h1>
+<h1>Controle Remoto de LEDs</h1>
 <div class="container">
     <div class="container1" id="button1">1</div>
     <div class="container2" id="button2">2</div>
     <div class="container3" id="button3">3</div>
     <div class="container4" id="button4">4</div>
 </div>
-<p>Clique nos botões ou pressione as teclas correspondentes via Bluetooth (se configurado) para acender os LEDs e ver a mesma animação.</p>
+<p>Clique nos botões do aplicativo  para acender os LEDs no dispositivo remoto.</p>
 </body>
 </html>
