@@ -7,77 +7,88 @@ let posicaoAtual = null;
 const pontuacaoElemento = document.getElementById("pontuacao");
 const tempoElemento = document.getElementById("tempo");
 const posicoes = [
-  document.getElementById("posicao1"),
-  document.getElementById("posicao2"),
-  document.getElementById("posicao3"),
-  document.getElementById("posicao4"),
+    document.getElementById("posicao1"),
+    document.getElementById("posicao2"),
+    document.getElementById("posicao3"),
+    document.getElementById("posicao4")
 ];
 
-// Cria a imagem da marmota
 const imagemMarmota = document.createElement("img");
 imagemMarmota.src = "img/marmota.png";
 imagemMarmota.classList.add("marmota");
 
+imagemMarmota.addEventListener("click", () => {
+    if (posicaoAtual !== null) {
+        pontuacao++;
+        pontuacaoElemento.textContent = pontuacao;
+        removerMarmota();
+    }
+});
+
 function iniciarJogo() {
-  pontuacao = 0;
-  tempo = 30;
-  pontuacaoElemento.textContent = pontuacao;
-  tempoElemento.textContent = tempo;
-
-  removerMarmota();
-
-  // Intervalo de 1 segundo para diminuir a velocidade
-  intervaloJogo = setInterval(() => {
-    tempo--;
+    pontuacao = 0;
+    tempo = 30;
+    pontuacaoElemento.textContent = pontuacao;
     tempoElemento.textContent = tempo;
 
-    if (tempo <= 0) {
-      encerrarJogo();
-    }
-  }, 1000);  // Intervalo de 1 segundo
+    removerMarmota();
 
-  // Intervalo de 2 segundos para a marmota aparecer
-  intervaloMarmota = setInterval(() => {
-    mostrarMarmota();
-  }, 2000);  // Intervalo de 2 segundos
+    intervaloJogo = setInterval(() => {
+        tempo--;
+        tempoElemento.textContent = tempo;
+        if (tempo <= 0) {
+            encerrarJogo();
+        }
+    }, 1000);
+
+    intervaloMarmota = setInterval(() => {
+        mostrarMarmota();
+    }, 2000);
 }
 
 function encerrarJogo() {
-  clearInterval(intervaloJogo);
-  clearInterval(intervaloMarmota);
-  removerMarmota();
-  alert("Fim do jogo! Sua pontuação foi: " + pontuacao);
+    clearInterval(intervaloJogo);
+    clearInterval(intervaloMarmota);
+    removerMarmota();
+    alert("Fim do jogo! Sua pontuação foi: " + pontuacao);
 }
 
 function mostrarMarmota() {
-  removerMarmota();
-  const indice = Math.floor(Math.random() * 4);
-  posicaoAtual = indice;
-  posicoes[indice].appendChild(imagemMarmota);
+    removerMarmota();
+    const indice = Math.floor(Math.random() * 4);
+    posicaoAtual = indice;
+    const posicaoSelecionada = posicoes[indice];
 
-  // Marmota desaparece após 1 segundo (não afetando o intervalo da próxima)
-  setTimeout(() => {
-    if (posicaoAtual === indice) {
-      removerMarmota();
-    }
-  }, 1000);  // Marmota desaparece após 1 segundo
+    posicaoSelecionada.appendChild(imagemMarmota);
+    posicaoSelecionada.classList.add("glow"); // adiciona o efeito glow
+
+    setTimeout(() => {
+        if (posicaoAtual === indice) {
+            removerMarmota();
+        }
+    }, 1000);
 }
 
 function removerMarmota() {
-  if (posicaoAtual !== null) {
-    posicoes[posicaoAtual].innerHTML = "";
-    posicaoAtual = null;
-  }
+    if (posicaoAtual !== null) {
+        const posicaoAnterior = posicoes[posicaoAtual];
+        if (posicaoAnterior.contains(imagemMarmota)) {
+            posicaoAnterior.removeChild(imagemMarmota);
+        }
+        posicaoAnterior.classList.remove("glow"); // remove o efeito glow
+        posicaoAtual = null;
+    }
 }
 
+// Suporte a teclado
 document.addEventListener("keydown", (evento) => {
-  const tecla = evento.key;
-  if (["1", "2", "3", "4"].includes(tecla)) {
-    const indice = parseInt(tecla) - 1;
-    if (indice === posicaoAtual) {
-      pontuacao++;
-      pontuacaoElemento.textContent = pontuacao;
-      removerMarmota();
+    const tecla = evento.key;
+    if (["1", "2", "3", "4"].includes(tecla)) {
+        const indice = parseInt(tecla) - 1;
+        if (indice === posicaoAtual) {
+            pontuacao++;
+            pontuacaoElemento.textContent = pontuacao;
+            removerMarmota();
+        }
     }
-  }
 });
