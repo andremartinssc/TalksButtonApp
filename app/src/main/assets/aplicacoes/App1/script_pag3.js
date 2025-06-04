@@ -3,6 +3,9 @@ let modoEdicao = false;
 let ledPiscaInterval = null; // Variável para armazenar o ID do intervalo do pisca
 let currentLedId = -1; // Armazena o ID do LED que está atualmente piscando
 
+// Constante para o prefixo do comando do LED via TalksButton
+const LED_COMMAND_PREFIX = 'talksbutton://led/';
+
 // Função para tocar os sons
 function tocarSom(id) {
     if (modoEdicao) return; // Ignora o evento se estiver no modo de edição
@@ -19,18 +22,20 @@ function tocarSom(id) {
     }, 400); // Duração da animação
 
     // Para e desliga qualquer LED que esteja piscando atualmente antes de iniciar um novo som
+    // Esta linha é importante para garantir a limpeza antes de qualquer nova ação
     pararPiscaLedAtual();
 
-    // Reprodução do som
+    // Reprodução do som (lógica mantida inalterada, conforme solicitado)
     if (somAtual === som && !som.paused) {
         // Se o mesmo som está tocando, pausa e reinicia
         som.pause();
         som.currentTime = 0;
         somAtual = null;
+
         // Ao pausar, garanta que o LED do som pausado seja desligado
         const ledId = getIdFromSoundId(id);
         if (ledId !== -1) {
-            enviarComandoLed(ledId, 0); // O comando 0 significa desligar imediatamente
+            enviarComandoLed(ledId, 0); // Desliga o LED explicitamente
         }
     } else {
         // Se um novo som (ou o mesmo som parado) vai tocar
@@ -51,15 +56,23 @@ function tocarSom(id) {
         const ledId = getIdFromSoundId(id);
         if (ledId !== -1) {
             currentLedId = ledId; // Armazena o ID do LED atual
+
             // Primeiro acionamento mais longo para indicar o clique
             enviarComandoLed(ledId, 1000); // LED acende por 1000ms
 
             // Inicia o padrão de piscadas da música APÓS o acionamento longo inicial.
-            // O LED estará desligado automaticamente pela LedController após 500ms.
-            // Então, esperamos um pouco mais para a próxima "ligada" do pisca.
+            // O LED estará desligado automaticamente pela LedController após 1000ms (ajustado para ser consistente).
             setTimeout(() => {
-                iniciarPiscaLed(ledId);
-            }, 750); // Inicia as piscadas após 750ms (500ms ligado + 250ms de pausa)
+                // *** REGRA CRUCIAL AQUI ***
+                // Só inicia o pisca se esta ainda for a música atualmente em reprodução.
+                // Isso evita que um pisca comece se a música já foi trocada ou pausada rapidamente.
+                if (somAtual === som) {
+                    iniciarPiscaLed(ledId);
+                } else {
+                    // Se a música já mudou, garante que o LED seja desligado.
+                    enviarComandoLed(ledId, 0);
+                }
+            }, 1000); // Espera o LED inicial se desligar antes de iniciar o pisca
         }
     }
 
@@ -86,25 +99,39 @@ function getIdFromSoundId(soundId) {
 // Usamos uma duração de 0 para desligar o LED imediatamente.
 // Para ligar, a duração será o tempo que ele ficará aceso antes de a LedController desligá-lo.
 function enviarComandoLed(ledNum, duracaoMs) {
-    if (typeof window.location.href !== 'undefined') {
+    if (typeof window.location.href === 'string') { // Verificação mais robusta para ambiente WebView
         const command = `talksbutton://led/${ledNum}/${duracaoMs}`;
         window.location.href = command;
         console.log(`Comando enviado para LED: ${command}`);
     } else {
-        console.warn("Ambiente não Android, comando de LED não será enviado.");
+        console.warn("Ambiente não Android ou WebView não detectado, comando de LED não será enviado.");
     }
 }
 
 // Inicia o padrão de pisca (500ms ligado, 500ms desligado)
 // Este padrão é para a indicação da música tocando
 function iniciarPiscaLed(ledId) {
-    // Não chamamos pararPiscaLedAtual() aqui intencionalmente,
-    // pois o acionamento inicial já lidou com isso.
-    // currentLedId já deve estar setado.
+    // Limpa qualquer intervalo existente antes de iniciar um novo para evitar múltiplos piscas
+    clearInterval(ledPiscaInterval);
+
+    // *** REGRA CRUCIAL AQUI: Só inicia o pisca se a música correspondente estiver ativa ***
+    // Se a música não está tocando ou não é a que corresponde a este LED, não inicia o pisca.
+    if (!somAtual || getIdFromSoundId(somAtual.id) !== ledId || somAtual.paused) {
+        enviarComandoLed(ledId, 0); // Garante que o LED esteja desligado
+        currentLedId = -1; // Reseta o LED atual
+        return; // Não inicia o intervalo de pisca
+    }
 
     // A cada 1 segundo, enviaremos um comando para ligar o LED por 500ms.
     ledPiscaInterval = setInterval(() => {
-        enviarComandoLed(ledId, 500); // Liga o LED por 500ms via LedController no Android
+        // *** REGRA CRUCIAL AQUI: Verifica continuamente se a música ainda está tocando ***
+        if (somAtual && getIdFromSoundId(somAtual.id) === ledId && !somAtual.paused) {
+            enviarComandoLed(ledId, 500); // Liga o LED por 500ms via LedController no Android
+        } else {
+            // Se a música parou, mudou ou foi pausada, para o pisca e desliga o LED
+            console.log(`Música ${id} não está mais tocando. Parando pisca do LED ${ledId}.`);
+            pararPiscaLedAtual();
+        }
     }, 1000); // Repete a cada 1 segundo (500ms ligado + 500ms desligado)
 }
 
@@ -159,5 +186,13 @@ document.addEventListener('keydown', (event) => {
         case 'm':
             tocarSom('som4');
             break;
+        default:
+            break; // Ignora outras teclas
     }
+});
+
+// Listener de keyup (mantido como uma medida de segurança, se necessário)
+document.addEventListener('keyup', (event) => {
+    // No contexto atual, com a lógica de LED refinada, este `keyup` é menos crítico.
+    // Pode ser removido se não houver outra necessidade para ele.
 });

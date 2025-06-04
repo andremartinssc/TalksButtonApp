@@ -103,30 +103,9 @@
         containerElement.classList.add('highlight'); // Inicia a animação de destaque
         acionarLed(ledNum, LED_DURATION_MS); // Aciona o LED correspondente
 
-        // --- MUDANÇA CRÍTICA AQUI: ABRIR O URL IMEDIATAMENTE COM FALLBACK ---
-        // Isso é essencial para contornar restrições de segurança do navegador que podem bloquear
-        // window.open() se não for chamado diretamente de um evento de usuário.
-        // A animação continuará em paralelo e será removida após seu tempo.
-        const newWindow = window.open(url, '_blank');
-        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-            console.warn('window.open foi bloqueado ou falhou. Tentando com <a> tag programática como fallback.');
-            // Fallback: Tenta abrir o link criando e clicando em uma tag <a> oculta
-            try {
-                const a = document.createElement('a');
-                a.href = url;
-                a.target = '_blank';
-                a.style.display = 'none'; // Mantém o link invisível
-                document.body.appendChild(a);
-                a.click(); // Simula o clique no link
-                document.body.removeChild(a); // Remove o link do DOM
-            } catch (e) {
-                console.error('Falha ao abrir URL via <a> tag programática:', e);
-                // Último recurso: Navegar na aba atual (menos ideal, mas funciona)
-                // window.location.href = url;
-            }
-        } else {
-            console.log(`URL ${url} aberta com sucesso.`);
-        }
+        // --- MUDANÇA AQUI: Abrir o URL navegando na mesma aba ---
+        window.location.href = url;
+        console.log(`Navegando para URL: ${url}`);
 
         // Remove a classe de destaque após a duração da animação.
         // Isso é independente da abertura do link, que já ocorreu.
