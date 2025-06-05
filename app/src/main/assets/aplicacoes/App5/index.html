@@ -2,35 +2,32 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jogo da Marmota</title>
     <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
 
-    <h1>Bate Marmota</h1>
-
-    <div class="pontuacao-tempo">
-        <p>Tempo restante: <span id="tempo">30</span>s</p>
-        <button onclick="iniciarJogo()">Iniciar</button>
-    </div>
-
-    <div class="pontuacao">
-        <p>Pontuação: <span id="pontuacao">0</span></p>
-    </div>
+<h1>Bate Marmota</h1>
+<audio id="audioJogo" src="audio/som1.mp3" preload="auto"></audio>
+<div class="game-area"> <div class="score-controls"> <div class="pontuacao-tempo">
+    <p>Tempo restante: <span id="tempo">30</span>s</p>
+    <p>Pontuação: <span id="pontuacao">0</span></p> <button onclick="iniciarJogo()">Iniciar</button>
+</div>
+</div>
 
     <div class="container-central">
         <div class="tabuleiro">
-            <div class="posicao" id="posicao1"></div>
-            <div class="posicao" id="posicao2"></div>
-            <div class="posicao" id="posicao3"></div>
-            <div class="posicao" id="posicao4"></div>
+            <div class="container1" id="button1"></div>
+            <div class="container2" id="button2"></div>
+            <div class="container3" id="button3"></div>
+            <div class="container4" id="button4"></div>
         </div>
 
         <div class="gato-central">
             <img src="img/gatinhogif.gif" alt="Gato" />
         </div>
     </div>
-
-    <script src="script.js"></script>
+</div> <script src="script.js"></script>
 </body>
 </html>
