@@ -1,141 +1,168 @@
-/* Resetando margens e padding para uniformizar o layout */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-  font-family: 'Comic Sans MS', cursive, sans-serif;  /* Fonte divertida para crianças */
-  background-color: #f0f8ff;
-  text-align: center;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100vh;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background-color: #f0f8ff;
+    /* Ajuste para alinhar os itens no centro horizontalmente e preencher a altura */
+    display: flex;
+    flex-direction: column; /* Manter a direção da coluna principal para o título */
+    align-items: center; /* Centraliza o título */
+    justify-content: flex-start; /* Alinha o conteúdo ao topo */
+    min-height: 100vh;
 }
 
-/* Título principal */
 h1 {
-  font-size: 3em;
-  color: #ff6347;  /* Tom de vermelho vibrante */
-  margin-bottom: 20px;
-  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    margin-top: 20px;
+    font-size: 2em;
+    color: #ff6347;
+    margin-bottom: 0px; /* Adicionado para dar espaço entre o título e o novo contêiner */
 }
 
-/* Seção de tempo e botão */
+/* Novo contêiner para o placar e o tabuleiro */
+.game-area {
+    display: flex; /* Permite que os filhos (placar e tabuleiro) fiquem lado a lado */
+    align-items: flex-start; /* Alinha os itens ao topo do contêiner */
+    gap: 50px; /* Espaço entre o placar e o tabuleiro */
+    width: 90%; /* Largura para ocupar mais espaço na tela */
+    justify-content: center; /* Centraliza a área do jogo */
+    margin-top: 20px; /* Espaço do título */
+}
+
 .pontuacao-tempo {
-  font-size: 1.5em;
-  margin-bottom: 20px;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+    text-align: center;
+    font-size: 1.3em;
+    color: #ff6347;
+    font-weight: bold;
+    /* Removido o margin-top, agora controlado pelo game-area */
+    display: flex; /* Para centralizar o tempo e o botão */
+    flex-direction: column;
+    align-items: center;
+    padding: 20px; /* Adicionado padding para visualização */
+    background-color: rgba(255, 255, 255, 0.7); /* Fundo semi-transparente */
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .pontuacao-tempo p {
-  font-size: 1.2em;
-  color: #555;
+    margin-bottom: 15px; /* Espaço entre o tempo e o botão */
 }
 
 .pontuacao-tempo button {
-  padding: 15px 30px;
-  font-size: 1.5em;
-  cursor: pointer;
-  background-color: #ff6347;  /* Cor vibrante */
-  border: none;
-  border-radius: 10px;
-  color: white;
-  transition: background-color 0.3s ease;
+    padding: 12px 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    background-color: #ff6347;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: background-color 0.3s ease;
 }
 
 .pontuacao-tempo button:hover {
-  background-color: #ff4500;  /* Tom mais forte de vermelho ao passar o mouse */
+    background-color: #e5533c;
+}
+
+/* A pontuação individual é movida para dentro de .pontuacao-tempo para ficar ao lado do tempo */
+/* Removida a posição absoluta aqui, pois será parte do fluxo do .pontuacao-tempo */
+.pontuacao {
+    font-size: 1.5em;
+    color: #ff6347;
+    font-weight: bold;
+    margin-bottom: 20px; /* Espaço abaixo da pontuação dentro do box */
+}
+
+
+.container-central {
+    position: relative;
+    /* margin-top removido, agora controlado pelo game-area */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .tabuleiro {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(2, 150px);
-  grid-template-rows: repeat(2, 150px);
-  gap: 20px;
-  justify-content: center;
-  margin: 0 auto;
-  margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(2, 130px);
+    grid-template-rows: repeat(2, 130px);
+    gap: 10px;
+    position: relative;
+    z-index: 1;
 }
 
-.posicao {
-  background-color: #ddd;
-  border-radius: 15px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+.tabuleiro > div {
+    width: 130px;
+    height: 130px;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ddd;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    transition: box-shadow 0.3s ease;
+    overflow: hidden;
+    position: relative;
 }
 
-.posicao:hover {
-  transform: scale(1.1);
-}
+#button1 { background-color: #4caf50; }
+#button2 { background-color: #f44336; }
+#button3 { background-color: #ffeb3b; }
+#button4 { background-color: #2196f3; }
 
-/* Cores vibrantes para cada posição */
-#posicao1 { background-color: #4caf50; } /* verde */
-#posicao2 { background-color: #f44336; } /* vermelho */
-#posicao3 { background-color: #ffeb3b; } /* amarelo */
-#posicao4 { background-color: #2196f3; } /* azul */
-
-/* Gato central com borda arredondada e sombra, sem animação de rotação */
 .gato-central {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
-  z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    z-index: 2;
 }
 
 .gato-central img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-/* Estilo da imagem da marmota */
 .marmota {
-  width: 80%;
-  height: auto;
-  pointer-events: none;
+    width: 90%;
+    height: auto;
+    cursor: pointer;
+    position: absolute;
+    bottom: -10px;
+    transform: translateY(100%);
+    transition: transform 0.2s ease-out;
 }
 
-/* Relógio do tempo */
-#tempo {
-  color: #ff6347;
-  font-weight: bold;
-  font-size: 1.3em;
-  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+.tabuleiro > div:has(.marmota) .marmota {
+    transform: translateY(0);
 }
 
-.pontuacao-tempo img {
-  width: 30px;
-  height: 30px;
-  margin-right: 10px;
-  vertical-align: middle;
+.tabuleiro > div.glow {
+    box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0.7);
+    transition: box-shadow 0.3s ease;
 }
 
-/* Posicionamento da pontuação à direita */
-.pontuacao {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 1.5em;
-  color: #ff6347;
-  font-weight: bold;
-  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+#button1.glow {
+    box-shadow: 0 0 25px 10px rgba(76, 175, 80, 0.9);
+}
+
+#button2.glow {
+    box-shadow: 0 0 25px 10px rgba(244, 67, 54, 0.9);
+}
+
+#button3.glow {
+    box-shadow: 0 0 25px 10px rgba(255, 235, 59, 0.9);
+}
+
+#button4.glow {
+    box-shadow: 0 0 25px 10px rgba(33, 150, 243, 0.9);
 }
