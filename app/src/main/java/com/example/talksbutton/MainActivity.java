@@ -1,5 +1,6 @@
 package com.example.talksbutton;
 
+import java.io.BufferedReader;
 import java.io.File;
 import android.Manifest;
 import android.animation.Animator;
@@ -35,12 +36,14 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Locale;
+import android.speech.tts.TextToSpeech;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
 
     private static final int REQUEST_BT_PERMISSIONS = 1;
-    // REMOVIDOS: RECONNECT_DELAY_MS, MAX_RECONNECT_ATTEMPTS (agora no serviço)
     private static final int ANIMATION_DURATION_SCALE_DOWN = 150;
     private static final int ANIMATION_DURATION_SCALE_UP = 300;
     private static final int ANIMATION_DURATION_ROTATE = 250;
@@ -50,21 +53,22 @@ public class MainActivity extends AppCompatActivity {
     private ImageView bt1, bt2, bt3, bt4, btLista;
     private BluetoothService mService;
     private boolean mBound = false;
-    private boolean isConnected = false; // Mantida para o Toast e estado da UI
-    // REMOVIDOS: reconnectAttemptCount, reconnectHandler, reconnectRunnable (agora no serviço)
+    private boolean isConnected = false;
     private AtomicBoolean isAnimationRunning = new AtomicBoolean(false);
-    private LedController ledController; // Instância do LedController
+    private LedController ledController;
     private Context context;
+    private TextToSpeech tts;
 
     private static final String CAPA_FILE_NAME_ASSET = "capa.jpg";
     private static final String CAPA_FILE_NAME_IMPORTED = "capa.JPG";
+    private static final String INFO_FILE_NAME = "info.txt";
 
     private final BroadcastReceiver appButtonChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if ("APP_BUTTON_MAPPING_CHANGED".equals(intent.getAction())) {
                 Log.d("MainActivity", "Recebido broadcast de atualização dos botões.");
-                updateButtonCovers(); // Atualiza as capas dos botões
+                updateButtonCovers();
             }
         }
     };
@@ -76,12 +80,8 @@ public class MainActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
             Log.d("MainActivity", "Serviço Bluetooth conectado.");
-            // REMOVIDO: attemptBluetoothConnection(); // O serviço agora se conecta sozinho
-            // Garante que o estado seja atualizado com base no serviço ao vincular
             isConnected = mService.isConnected();
-            // Inicializa o LedController (agora que mService está disponível)
             ledController = new LedController(mService, mBound);
-            // Mostra o Toast de conexão inicial, se já estiver conectado
             if (isConnected) {
                 Toast.makeText(MainActivity.this, "Dispositivo Talks Button conectado", Toast.LENGTH_SHORT).show();
             }
@@ -91,10 +91,10 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
             mService = null;
-            ledController = null; // Limpa a referência ao LedController
-            isConnected = false; // Atualiza o estado
+            ledController = null;
+            isConnected = false;
             Log.d("MainActivity", "Serviço Bluetooth desconectado.");
-            Toast.makeText(MainActivity.this, "Dispositivo Talks Button desconectado", Toast.LENGTH_SHORT).show(); // Notifica a desconexão
+            Toast.makeText(MainActivity.this, "Dispositivo Talks Button desconectado", Toast.LENGTH_SHORT).show();
         }
     };
 
@@ -113,18 +113,14 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if ("bluetooth_connection_state".equals(intent.getAction())) {
                 boolean newConnectionState = intent.getBooleanExtra("is_connected", false);
-                if (newConnectionState != isConnected) { // Só mostra o Toast se o estado mudou
+                if (newConnectionState != isConnected) {
                     isConnected = newConnectionState;
                     String message = isConnected ? "Dispositivo Talks Button conectado" : "Dispositivo Talks Button desconectado";
                     Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-                    // REMOVIDO: reconnectAttemptCount = 0; startReconnectTimer(); stopReconnectTimer();
-                    // Toda a lógica de reconexão agora é do serviço.
                 }
             }
         }
     };
-
-    // REMOVIDO: reconnectRunnable completo (agora no serviço)
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,6 +142,8 @@ public class MainActivity extends AppCompatActivity {
         bt4.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT4));
         btLista.setOnClickListener(v -> handleButtonClick(v, "lista"));
 
+        tts = new TextToSpeech(this, this);
+
         if (!hasBluetoothPermissions()) {
             requestPermissions();
         } else {
@@ -153,50 +151,72 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void loadCapaImage(String appFolderName, String appPathType, ImageView imageView) {
-        Bitmap bitmap = null;
-        if ("internal".equals(appPathType)) {
-            File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
-            File coverFile = new File(appDir, CAPA_FILE_NAME_IMPORTED);
-            if (coverFile.exists()) {
-                try {
-                    bitmap = BitmapFactory.decodeFile(coverFile.getAbsolutePath());
-                    if (bitmap == null) {
-                        Log.e("MainActivity", "BitmapFactory retornou null para capa importada: " + coverFile.getAbsolutePath() + ". O arquivo pode estar corrompido ou não é uma imagem válida.");
-                    } else {
-                        Log.d("MainActivity", "Capa importada carregada com sucesso: " + coverFile.getAbsolutePath());
-                    }
-                } catch (OutOfMemoryError oome) {
-                    Log.e("MainActivity", "OutOfMemoryError ao carregar capa importada para " + appFolderName + ": " + oome.getMessage() + ". Tente reduzir o tamanho da imagem.");
-                } catch (Exception e) {
-                    Log.e("MainActivity", "Erro inesperado ao carregar capa importada para " + appFolderName + ": " + e.getMessage(), e);
+    @Override
+    public void onInit(int status) {
+        if (status == TextToSpeech.SUCCESS) {
+            int result = tts.setLanguage(new Locale("pt", "BR"));
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS", "Idioma (pt-BR) não suportado ou dados ausentes. Tentando idioma padrão.");
+                result = tts.setLanguage(Locale.getDefault());
+
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("TTS", "Idioma padrão também não suportado ou dados ausentes.");
+                    Intent installIntent = new Intent();
+                    installIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                    startActivity(installIntent);
+                } else {
+                    Log.d("TTS", "TextToSpeech inicializado com sucesso no idioma padrão.");
                 }
             } else {
-                Log.w("MainActivity", "Capa não encontrada em armazenamento interno para " + appFolderName + " no caminho: " + coverFile.getAbsolutePath());
+                Log.d("TTS", "TextToSpeech inicializado com sucesso em pt-BR.");
             }
-        } else { // Assume "asset"
-            AssetManager am = getAssets();
-            InputStream is = null;
-            try {
-                String imagePath = "aplicacoes/" + appFolderName + "/" + CAPA_FILE_NAME_ASSET;
-                is = am.open(imagePath);
-                bitmap = BitmapFactory.decodeStream(is);
-                if (bitmap == null) {
-                    Log.e("MainActivity", "BitmapFactory retornou null para capa de asset: " + imagePath + ". O arquivo pode estar corrompido ou não é uma imagem válida.");
-                } else {
-                    Log.d("MainActivity", "Capa de asset carregada com sucesso: " + imagePath);
-                }
-            } catch (IOException e) {
-                Log.w("MainActivity", "Imagem de capa não encontrada em assets para " + appFolderName + ": " + e.getMessage());
-            } finally {
-                if (is != null) {
-                    try {
-                        is.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+        } else {
+            Log.e("TTS", "Falha na inicialização do TextToSpeech.");
+        }
+    }
+
+    private void loadCapaImage(String appFolderName, String appPathType, ImageView imageView) {
+        Bitmap bitmap = null;
+        InputStream is = null;
+        File coverFile = null;
+
+        try {
+            if ("internal".equals(appPathType)) {
+                File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
+                coverFile = new File(appDir, CAPA_FILE_NAME_IMPORTED);
+                if (coverFile.exists()) {
+                    bitmap = BitmapFactory.decodeFile(coverFile.getAbsolutePath());
+                    if (bitmap == null) {
+                        Log.e("MainActivity", "BitmapFactory retornou null para capa importada: " + coverFile.getAbsolutePath());
+                    } else {
+                        Log.d("MainActivity", "Capa importada carregada: " + coverFile.getAbsolutePath());
                     }
+                } else {
+                    Log.w("MainActivity", "Capa não encontrada em armazenamento interno: " + coverFile.getAbsolutePath());
+                }
+
+            } else {
+                AssetManager am = getAssets();
+                String imagePath = "aplicacoes/" + appFolderName + "/" + CAPA_FILE_NAME_ASSET;
+                try {
+                    is = am.open(imagePath);
+                    bitmap = BitmapFactory.decodeStream(is);
+                    if (bitmap == null) {
+                        Log.e("MainActivity", "BitmapFactory retornou null para capa de asset: " + imagePath);
+                    } else {
+                        Log.d("MainActivity", "Capa de asset carregada: " + imagePath);
+                    }
+                } catch (IOException e) {
+                    Log.w("MainActivity", "Imagem de capa não encontrada em assets para " + appFolderName + ": " + e.getMessage());
                 }
             }
+        } catch (OutOfMemoryError oome) {
+            Log.e("MainActivity", "OutOfMemoryError ao carregar capa para " + appFolderName + ": " + oome.getMessage());
+        } catch (Exception e) {
+            Log.e("MainActivity", "Erro inesperado ao carregar capa para " + appFolderName + ": " + e.getMessage(), e);
+        } finally {
+            if (is != null) { try { is.close(); } catch (IOException e) { e.printStackTrace(); }}
         }
 
         if (bitmap != null) {
@@ -206,13 +226,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void startBluetoothService() {
-        Intent serviceIntent = new Intent(this, BluetoothService.class);
-        startService(serviceIntent); // Inicia o serviço
-        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE); // Vincula-se ao serviço
+    private String readAppNameFromInfoTxt(InputStream is, String fallbackName) {
+        String appName = fallbackName;
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(is));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("titulo:")) {
+                    appName = line.substring("titulo:".length()).trim();
+                    Log.d("MainActivity", "Nome lido do info.txt: " + appName);
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            Log.e("MainActivity", "Erro ao ler info.txt: " + e.getMessage());
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return appName != null && !appName.isEmpty() ? appName : fallbackName;
     }
 
-    // REMOVIDO: attemptBluetoothConnection(); // O serviço agora lida com sua própria conexão inicial e reconexões
+    private void startBluetoothService() {
+        Intent serviceIntent = new Intent(this, BluetoothService.class);
+        startService(serviceIntent);
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
 
     private void handleBluetoothData(String data) {
         runOnUiThread(() -> {
@@ -291,38 +336,28 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothDataReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(bluetoothConnectionReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(appButtonChangedReceiver);
-        // REMOVIDO: stopReconnectTimer(); // Gerenciado pelo serviço
     }
 
     @Override
     protected void onDestroy() {
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+        }
         super.onDestroy();
         if (mBound) {
             unbindService(serviceConnection);
             mBound = false;
         }
-        // REMOVIDO: stopReconnectTimer(); // Gerenciado pelo serviço
-        // O serviço é destruído quando a Activity é destruída se não houver outras Activities vinculadas,
-        // mas o serviço permanece vivo se for iniciado e não houver vínculos ou se explicitamente parado.
-        // Se você quer que o serviço pare completamente com a activity, chame stopService(new Intent(this, BluetoothService.class));
-        // Mas para reconexão em segundo plano, é melhor deixá-lo gerenciar seu próprio ciclo de vida.
     }
-
-    // REMOVIDO: startReconnectTimer() e stopReconnectTimer() (agora no serviço)
 
     private void handleButtonClick(View view, String buttonPrefKey) {
         if (isAnimationRunning.compareAndSet(false, true)) {
-            if ("lista".equals(buttonPrefKey)) {
-                animateButtonClickAndOpen(view, "lista", null, null);
-                return;
-            }
-
             String appFolderName = AppButtonPreferenceManager.getAppForButton(context, buttonPrefKey, getDefaultAppName(buttonPrefKey));
             String appPathType = AppButtonPreferenceManager.getAppButtonType(context, buttonPrefKey + "_type", "asset");
 
-            animateButtonClickAndOpen(view, null, appFolderName, appPathType);
+            animateButtonClickAndOpen(view, buttonPrefKey, appFolderName, appPathType);
 
-            // Ações do LED somente se o serviço estiver conectado e o LED Controller inicializado
             if (ledController != null && mService != null && mService.isConnected()) {
                 int ledNumber = 0;
                 if (AppButtonPreferenceManager.KEY_APP_BT1.equals(buttonPrefKey)) ledNumber = 1;
@@ -351,7 +386,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void animateButtonClickAndOpen(View view, String actionType, String appFolderName, String appPathType) {
+    private void animateButtonClickAndOpen(View view, String buttonPrefKey, String appFolderName, String appPathType) {
         AnimatorSet animatorSet = new AnimatorSet();
 
         ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(view, "scaleX", 1f, 0.8f);
@@ -382,11 +417,31 @@ public class MainActivity extends AppCompatActivity {
         animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
+                String nameToSpeakTemp = null;
+                // REMOVIDA: A condição para falar "Lista de Jogos" foi removida.
+                // Agora, o TTS só será ativado para os botões de aplicativo.
+                if (!"lista".equals(buttonPrefKey)) { // Se não for o botão "lista"
+                    nameToSpeakTemp = getAppNameFromInfoTxt(appFolderName, appPathType, formatFolderNameForSpeech(appFolderName));
+                }
+
+                final String nameToSpeakFinal = nameToSpeakTemp;
+                final String finalAppFolderName = appFolderName;
+                final String finalAppPathType = appPathType;
+
+                // Só fala se houver um nome válido para falar (ou seja, não para o botão "lista")
+                if (tts != null && nameToSpeakFinal != null && !nameToSpeakFinal.isEmpty()) {
+                    new Handler().postDelayed(() -> {
+                        if (tts != null) {
+                            tts.speak(nameToSpeakFinal, TextToSpeech.QUEUE_FLUSH, null, null);
+                        }
+                    }, 100);
+                }
+
                 new Handler().postDelayed(() -> {
-                    if ("lista".equals(actionType)) {
+                    if ("lista".equals(buttonPrefKey)) {
                         openGameList();
-                    } else if (appFolderName != null && appPathType != null) {
-                        openWebApp(appFolderName, appPathType);
+                    } else if (finalAppFolderName != null && finalAppPathType != null) {
+                        openWebApp(finalAppFolderName, finalAppPathType);
                     }
                     isAnimationRunning.set(false);
                 }, TRANSITION_DELAY_MS);
@@ -394,6 +449,66 @@ public class MainActivity extends AppCompatActivity {
         });
 
         animatorSet.start();
+    }
+
+    private String getAppNameFromInfoTxt(String appFolderName, String appPathType, String fallbackName) {
+        InputStream infoIs = null;
+        try {
+            if ("internal".equals(appPathType)) {
+                File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
+                File infoFile = new File(appDir, INFO_FILE_NAME);
+                if (infoFile.exists()) {
+                    infoIs = new java.io.FileInputStream(infoFile);
+                } else {
+                    Log.w("MainActivity", "Arquivo info.txt não encontrado em armazenamento interno para: " + appFolderName);
+                    return fallbackName;
+                }
+            } else {
+                AssetManager am = getAssets();
+                String infoPath = "aplicacoes/" + appFolderName + "/" + INFO_FILE_NAME;
+                try {
+                    infoIs = am.open(infoPath);
+                } catch (IOException e) {
+                    Log.w("MainActivity", "Arquivo info.txt não encontrado em assets para " + appFolderName + ": " + e.getMessage());
+                    return fallbackName;
+                }
+            }
+            if (infoIs != null) {
+                return readAppNameFromInfoTxt(infoIs, fallbackName);
+            }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Erro ao tentar obter nome do info.txt para " + appFolderName + ": " + e.getMessage());
+        } finally {
+            if (infoIs != null) {
+                try {
+                    infoIs.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return fallbackName;
+    }
+
+    private String formatFolderNameForSpeech(String folderName) {
+        if (folderName == null || folderName.isEmpty()) {
+            return "Nome Desconhecido";
+        }
+        String formatted = folderName.replace("_", " ");
+        StringBuilder result = new StringBuilder();
+        boolean capitalizeNext = true;
+        for (char c : formatted.toCharArray()) {
+            if (Character.isWhitespace(c)) {
+                result.append(c);
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                result.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                result.append(Character.toLowerCase(c));
+            }
+        }
+        return result.toString();
     }
 
     @Override
@@ -413,7 +528,7 @@ public class MainActivity extends AppCompatActivity {
                 case KeyEvent.KEYCODE_4:
                     bt4.performClick();
                     return true;
-                case KeyEvent.KEYCODE_5: // Botão físico 5 para a lista
+                case KeyEvent.KEYCODE_5:
                     btLista.performClick();
                     return true;
                 default:
