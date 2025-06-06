@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
@@ -41,7 +42,16 @@ import java.util.Locale;
 import android.speech.tts.TextToSpeech;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import android.widget.Switch;
+import android.content.SharedPreferences;
+import android.widget.FrameLayout;
+// Importações de SeekBar e TextView removidas, pois não são mais necessárias para este controle específico aqui
+// import android.widget.SeekBar;
+// import android.widget.TextView;
+
 public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
+
+    private static final String TAG = "MainActivity";
 
     private static final int REQUEST_BT_PERMISSIONS = 1;
     private static final int ANIMATION_DURATION_SCALE_DOWN = 150;
@@ -59,6 +69,18 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     private Context context;
     private TextToSpeech tts;
 
+    private Switch ttsSwitch;
+    // Removendo as variáveis de SeekBar, TextView e ImageView para controle de transparência da imageView8
+    // private SeekBar alphaSeekBar;
+    // private TextView alphaPercentageText;
+    // private ImageView imageView8; // Removida daqui
+
+    private static final String PREFS_NAME = "AppPrefs";
+    private static final String KEY_TTS_ENABLED = "tts_enabled";
+    // Removendo KEY_ALPHA_VALUE, já que não controlaremos a transparência via SeekBar mais
+    // private static final String KEY_ALPHA_VALUE = "alpha_value";
+    private boolean isTtsGloballyEnabled = false;
+
     private static final String CAPA_FILE_NAME_ASSET = "capa.jpg";
     private static final String CAPA_FILE_NAME_IMPORTED = "capa.JPG";
     private static final String INFO_FILE_NAME = "info.txt";
@@ -67,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         @Override
         public void onReceive(Context context, Intent intent) {
             if ("APP_BUTTON_MAPPING_CHANGED".equals(intent.getAction())) {
-                Log.d("MainActivity", "Recebido broadcast de atualização dos botões.");
+                Log.d(TAG, "Recebido broadcast de atualização dos botões.");
                 updateButtonCovers();
             }
         }
@@ -79,12 +101,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-            Log.d("MainActivity", "Serviço Bluetooth conectado.");
+            Log.d(TAG, "Serviço Bluetooth conectado.");
             isConnected = mService.isConnected();
-            ledController = new LedController(mService, mBound);
             if (isConnected) {
-                Toast.makeText(MainActivity.this, "Dispositivo Talks Button conectado", Toast.LENGTH_SHORT).show();
+                // Não fala "Dispositivo Talks Button conectado"
             }
+            ledController = new LedController(mService, mBound); // Inicializa ledController após mService
         }
 
         @Override
@@ -93,8 +115,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             mService = null;
             ledController = null;
             isConnected = false;
-            Log.d("MainActivity", "Serviço Bluetooth desconectado.");
+            Log.d(TAG, "Serviço Bluetooth desconectado.");
             Toast.makeText(MainActivity.this, "Dispositivo Talks Button desconectado", Toast.LENGTH_SHORT).show();
+            // Não fala "Dispositivo Talks Button desconectado"
         }
     };
 
@@ -117,6 +140,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     isConnected = newConnectionState;
                     String message = isConnected ? "Dispositivo Talks Button conectado" : "Dispositivo Talks Button desconectado";
                     Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+                    // Não fala mudanças de estado da conexão Bluetooth
                 }
             }
         }
@@ -128,21 +152,75 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         setContentView(R.layout.activity_main);
         context = this;
 
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        Log.d(TAG, "onCreate chamado");
+
+        // Inicializa TextToSpeech no onCreate
+        tts = new TextToSpeech(this, this);
+
         bt1 = findViewById(R.id.bt_1);
         bt2 = findViewById(R.id.bt_2);
         bt3 = findViewById(R.id.bt_3);
         bt4 = findViewById(R.id.bt_4);
         btLista = findViewById(R.id.bt_lista);
 
+        // Encontra o Switch no layout e carrega seu estado salvo
+        ttsSwitch = findViewById(R.id.switch_tts_enabled_main);
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        isTtsGloballyEnabled = prefs.getBoolean(KEY_TTS_ENABLED, false);
+        ttsSwitch.setChecked(isTtsGloballyEnabled);
+
+        // Configura o listener para o Switch
+        ttsSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            isTtsGloballyEnabled = isChecked;
+            SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+            editor.putBoolean(KEY_TTS_ENABLED, isChecked);
+            editor.apply();
+
+            String status = isChecked ? "ATIVADO" : "DESATIVADO";
+            Toast.makeText(MainActivity.this, "Texto Falado: " + status, Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Estado do TTS atualizado: " + status);
+
+            // Fala o status do TTS imediatamente (este é o único lugar que fala o estado do TTS)
+            if (isChecked) {
+                // A fala de "Texto falado ativado." só ocorre se o TTS for ligado via Switch
+                if (tts != null) tts.speak("Texto falado ativado.", TextToSpeech.QUEUE_FLUSH, null, null);
+            } else {
+                // Se desativado, pare qualquer fala em andamento
+                if (tts != null) {
+                    tts.stop();
+                    if (tts != null) tts.speak("Texto falado desativado.", TextToSpeech.QUEUE_FLUSH, null, null);
+                }
+            }
+        });
+
+        // Removendo inicialização e listeners do SeekBar de transparência, pois não são mais usados
+        // alphaSeekBar = findViewById(R.id.alphaSeekBar);
+        // alphaPercentageText = findViewById(R.id.alphaPercentageText);
+        // imageView8 = findViewById(R.id.imageView8); // Removida daqui
+
+        // Removendo o carregamento do valor de transparência e aplicação na inicialização
+        // int savedAlphaProgress = prefs.getInt(KEY_ALPHA_VALUE, 60); // 60% como padrão
+        // alphaSeekBar.setProgress(savedAlphaProgress);
+        // updateAlphaText(savedAlphaProgress);
+        // setImageViewAlpha(savedAlphaProgress);
+
+        // Removendo o listener do SeekBar de transparência
+        // alphaSeekBar.setOnSeekBarChangeListener(...)
+
+
         updateButtonCovers();
 
-        bt1.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT1));
-        bt2.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT2));
-        bt3.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT3));
-        bt4.setOnClickListener(v -> handleButtonClick(v, AppButtonPreferenceManager.KEY_APP_BT4));
-        btLista.setOnClickListener(v -> handleButtonClick(v, "lista"));
+        // Define os listeners para os FrameLayouts que contêm as ImageViews dos botões
+        findViewById(R.id.bt_1_container).setOnClickListener(v -> handleButtonClick(bt1, AppButtonPreferenceManager.KEY_APP_BT1));
+        findViewById(R.id.bt_2_container).setOnClickListener(v -> handleButtonClick(bt2, AppButtonPreferenceManager.KEY_APP_BT2));
+        findViewById(R.id.bt_3_container).setOnClickListener(v -> handleButtonClick(bt3, AppButtonPreferenceManager.KEY_APP_BT3));
+        findViewById(R.id.bt_4_container).setOnClickListener(v -> handleButtonClick(bt4, AppButtonPreferenceManager.KEY_APP_BT4));
 
-        tts = new TextToSpeech(this, this);
+        btLista.setOnClickListener(v -> {
+            handleButtonClick(v, "lista");
+        });
+
 
         if (!hasBluetoothPermissions()) {
             requestPermissions();
@@ -150,6 +228,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             startBluetoothService();
         }
     }
+
+    // Métodos updateAlphaText e setImageViewAlpha removidos, pois não são mais necessários
+    // private void updateAlphaText(int progress) { ... }
+    // private void setImageViewAlpha(int progress) { ... }
+
 
     @Override
     public void onInit(int status) {
@@ -171,8 +254,19 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             } else {
                 Log.d("TTS", "TextToSpeech inicializado com sucesso em pt-BR.");
             }
+            // Não fala "Bem-vindo ao Talks Button" na inicialização
         } else {
             Log.e("TTS", "Falha na inicialização do TextToSpeech.");
+        }
+    }
+
+    // Método speak() agora é privado e só é chamado por animateButtonClickAndOpen() para nomes de apps
+    private void speakAppName(String text, int queueMode) {
+        // A fala só ocorrerá se 'tts' não for nulo E 'isTtsGloballyEnabled' for true
+        if (tts != null && isTtsGloballyEnabled) {
+            tts.speak(text, queueMode, null, null);
+        } else {
+            Log.d(TAG, "TTS desativado ou não inicializado. Não falarei: " + text);
         }
     }
 
@@ -183,17 +277,17 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
         try {
             if ("internal".equals(appPathType)) {
-                File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
+                File appDir = new File(getFilesDir(), "aplicacoes_importadas" + File.separator + appFolderName);
                 coverFile = new File(appDir, CAPA_FILE_NAME_IMPORTED);
                 if (coverFile.exists()) {
                     bitmap = BitmapFactory.decodeFile(coverFile.getAbsolutePath());
                     if (bitmap == null) {
-                        Log.e("MainActivity", "BitmapFactory retornou null para capa importada: " + coverFile.getAbsolutePath());
+                        Log.e(TAG, "BitmapFactory retornou null para capa importada: " + coverFile.getAbsolutePath());
                     } else {
-                        Log.d("MainActivity", "Capa importada carregada: " + coverFile.getAbsolutePath());
+                        Log.d(TAG, "Capa importada carregada: " + coverFile.getAbsolutePath());
                     }
                 } else {
-                    Log.w("MainActivity", "Capa não encontrada em armazenamento interno: " + coverFile.getAbsolutePath());
+                    Log.w(TAG, "Capa não encontrada em armazenamento interno: " + coverFile.getAbsolutePath());
                 }
 
             } else {
@@ -203,18 +297,18 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     is = am.open(imagePath);
                     bitmap = BitmapFactory.decodeStream(is);
                     if (bitmap == null) {
-                        Log.e("MainActivity", "BitmapFactory retornou null para capa de asset: " + imagePath);
+                        Log.e(TAG, "BitmapFactory retornou null para capa de asset: " + imagePath);
                     } else {
-                        Log.d("MainActivity", "Capa de asset carregada: " + imagePath);
+                        Log.d(TAG, "Capa de asset carregada: " + imagePath);
                     }
                 } catch (IOException e) {
-                    Log.w("MainActivity", "Imagem de capa não encontrada em assets para " + appFolderName + ": " + e.getMessage());
+                    Log.w(TAG, "Imagem de capa não encontrada em assets para " + appFolderName + ": " + e.getMessage());
                 }
             }
         } catch (OutOfMemoryError oome) {
-            Log.e("MainActivity", "OutOfMemoryError ao carregar capa para " + appFolderName + ": " + oome.getMessage());
+            Log.e(TAG, "OutOfMemoryError ao carregar capa para " + appFolderName + ": " + oome.getMessage());
         } catch (Exception e) {
-            Log.e("MainActivity", "Erro inesperado ao carregar capa para " + appFolderName + ": " + e.getMessage(), e);
+            Log.e(TAG, "Erro inesperado ao carregar capa para " + appFolderName + ": " + e.getMessage(), e);
         } finally {
             if (is != null) { try { is.close(); } catch (IOException e) { e.printStackTrace(); }}
         }
@@ -235,12 +329,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("titulo:")) {
                     appName = line.substring("titulo:".length()).trim();
-                    Log.d("MainActivity", "Nome lido do info.txt: " + appName);
+                    Log.d(TAG, "Nome lido do info.txt: " + appName);
                     break;
                 }
             }
         } catch (IOException e) {
-            Log.e("MainActivity", "Erro ao ler info.txt: " + e.getMessage());
+            Log.e(TAG, "Erro ao ler info.txt: " + e.getMessage());
         } finally {
             if (reader != null) {
                 try {
@@ -261,25 +355,26 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     private void handleBluetoothData(String data) {
         runOnUiThread(() -> {
-            Log.d("MainActivity", "Dados Bluetooth recebidos: " + data);
+            Log.d(TAG, "Dados Bluetooth recebidos: " + data);
             switch (data.trim()) {
                 case "B1":
-                    bt1.performClick();
+                    findViewById(R.id.bt_1_container).performClick();
                     break;
                 case "B2":
-                    bt2.performClick();
+                    findViewById(R.id.bt_2_container).performClick();
                     break;
                 case "B3":
-                    bt3.performClick();
+                    findViewById(R.id.bt_3_container).performClick();
                     break;
                 case "B4":
-                    bt4.performClick();
+                    findViewById(R.id.bt_4_container).performClick();
                     break;
-                case "B5":
+                case "B5": // B5 agora aciona a lista de jogos novamente
                     btLista.performClick();
                     break;
+                // Os casos B6 e B7 para controle de transparência foram removidos
                 default:
-                    Log.w("MainActivity", "Dados Bluetooth desconhecidos: " + data);
+                    Log.w(TAG, "Dados Bluetooth desconhecidos: " + data);
                     break;
             }
         });
@@ -322,6 +417,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d(TAG, "onStart chamado");
         IntentFilter dataFilter = new IntentFilter("bluetooth_data_received");
         LocalBroadcastManager.getInstance(this).registerReceiver(bluetoothDataReceiver, dataFilter);
         IntentFilter connectionFilter = new IntentFilter("bluetooth_connection_state");
@@ -343,6 +439,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         if (tts != null) {
             tts.stop();
             tts.shutdown();
+            Log.d(TAG, "TTS desligado.");
         }
         super.onDestroy();
         if (mBound) {
@@ -352,11 +449,13 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     }
 
     private void handleButtonClick(View view, String buttonPrefKey) {
+        View containerView = view.getParent() instanceof FrameLayout ? (View) view.getParent() : view;
+
         if (isAnimationRunning.compareAndSet(false, true)) {
             String appFolderName = AppButtonPreferenceManager.getAppForButton(context, buttonPrefKey, getDefaultAppName(buttonPrefKey));
             String appPathType = AppButtonPreferenceManager.getAppButtonType(context, buttonPrefKey + "_type", "asset");
 
-            animateButtonClickAndOpen(view, buttonPrefKey, appFolderName, appPathType);
+            animateButtonClickAndOpen(containerView, buttonPrefKey, appFolderName, appPathType);
 
             if (ledController != null && mService != null && mService.isConnected()) {
                 int ledNumber = 0;
@@ -368,10 +467,10 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 if (ledNumber > 0) {
                     ledController.ligarLed(ledNumber, 1000);
                 } else {
-                    Log.e("MainActivity", "Ação desconhecida para controle de LED: " + buttonPrefKey);
+                    Log.e(TAG, "Ação desconhecida para controle de LED: " + buttonPrefKey);
                 }
             } else {
-                Log.w("MainActivity", "Não foi possível controlar o LED: serviço não vinculado ou não conectado.");
+                Log.w(TAG, "Não foi possível controlar o LED: serviço não vinculado ou não conectado.");
             }
         }
     }
@@ -418,9 +517,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             @Override
             public void onAnimationEnd(Animator animation) {
                 String nameToSpeakTemp = null;
-                // REMOVIDA: A condição para falar "Lista de Jogos" foi removida.
-                // Agora, o TTS só será ativado para os botões de aplicativo.
-                if (!"lista".equals(buttonPrefKey)) { // Se não for o botão "lista"
+                // Apenas obtém o nome para falar se NÃO for o botão da lista de jogos
+                if (!"lista".equals(buttonPrefKey)) {
                     nameToSpeakTemp = getAppNameFromInfoTxt(appFolderName, appPathType, formatFolderNameForSpeech(appFolderName));
                 }
 
@@ -428,12 +526,10 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 final String finalAppFolderName = appFolderName;
                 final String finalAppPathType = appPathType;
 
-                // Só fala se houver um nome válido para falar (ou seja, não para o botão "lista")
-                if (tts != null && nameToSpeakFinal != null && !nameToSpeakFinal.isEmpty()) {
+                // CHAMA O speakAppName() APENAS SE FOR UM BOTÃO DE APLICATIVO
+                if (nameToSpeakFinal != null && !nameToSpeakFinal.isEmpty()) {
                     new Handler().postDelayed(() -> {
-                        if (tts != null) {
-                            tts.speak(nameToSpeakFinal, TextToSpeech.QUEUE_FLUSH, null, null);
-                        }
+                        speakAppName(nameToSpeakFinal, TextToSpeech.QUEUE_FLUSH);
                     }, 100);
                 }
 
@@ -455,12 +551,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         InputStream infoIs = null;
         try {
             if ("internal".equals(appPathType)) {
-                File appDir = new File(getFilesDir(), GameListActivity.IMPORTED_APPS_FOLDER + File.separator + appFolderName);
+                File appDir = new File(getFilesDir(), "aplicacoes_importadas" + File.separator + appFolderName);
                 File infoFile = new File(appDir, INFO_FILE_NAME);
                 if (infoFile.exists()) {
                     infoIs = new java.io.FileInputStream(infoFile);
                 } else {
-                    Log.w("MainActivity", "Arquivo info.txt não encontrado em armazenamento interno para: " + appFolderName);
+                    Log.w(TAG, "Arquivo info.txt não encontrado em armazenamento interno para: " + appFolderName);
                     return fallbackName;
                 }
             } else {
@@ -469,7 +565,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 try {
                     infoIs = am.open(infoPath);
                 } catch (IOException e) {
-                    Log.w("MainActivity", "Arquivo info.txt não encontrado em assets para " + appFolderName + ": " + e.getMessage());
+                    Log.w(TAG, "Arquivo info.txt não encontrado em assets para " + appFolderName + ": " + e.getMessage());
                     return fallbackName;
                 }
             }
@@ -477,7 +573,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 return readAppNameFromInfoTxt(infoIs, fallbackName);
             }
         } catch (Exception e) {
-            Log.e("MainActivity", "Erro ao tentar obter nome do info.txt para " + appFolderName + ": " + e.getMessage());
+            Log.e(TAG, "Erro ao tentar obter nome do info.txt para " + appFolderName + ": " + e.getMessage());
         } finally {
             if (infoIs != null) {
                 try {
@@ -517,20 +613,21 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             switch (keyCode) {
                 case KeyEvent.KEYCODE_1:
-                    bt1.performClick();
+                    findViewById(R.id.bt_1_container).performClick();
                     return true;
                 case KeyEvent.KEYCODE_2:
-                    bt2.performClick();
+                    findViewById(R.id.bt_2_container).performClick();
                     return true;
                 case KeyEvent.KEYCODE_3:
-                    bt3.performClick();
+                    findViewById(R.id.bt_3_container).performClick();
                     return true;
                 case KeyEvent.KEYCODE_4:
-                    bt4.performClick();
+                    findViewById(R.id.bt_4_container).performClick();
                     return true;
-                case KeyEvent.KEYCODE_5:
+                case KeyEvent.KEYCODE_5: // B5 aciona o botão da lista de jogos
                     btLista.performClick();
                     return true;
+                // Removido KEYCODE_6 e KEYCODE_7, pois não queremos que os botões controlem a transparência
                 default:
                     break;
             }
@@ -555,4 +652,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         String app4Type = AppButtonPreferenceManager.getAppButtonType(context, AppButtonPreferenceManager.KEY_APP_BT4_TYPE, "asset");
         loadCapaImage(app4Folder, app4Type, bt4);
     }
+
+    // Certifique-se de que a classe AppButtonPreferenceManager está definida em seu projeto.
+    // Se não estiver, você precisará criá-la ou usar SharedPreferences diretamente.
 }
